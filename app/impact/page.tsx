@@ -5,6 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { useFoodRelay } from "@/lib/storage/useFoodRelay";
 import { computeAnalytics } from "@/lib/analytics/metrics";
 import { FoodRelayRepository } from "@/lib/storage/repository";
+import { ImpactInsightsCard } from "@/components/ai/ImpactInsightsCard";
 import {
   BarChart3,
   Download,
@@ -231,6 +232,13 @@ export default function ImpactPage() {
             <span className="text-[10px] text-charcoal-muted mt-1">Unmet shelter capacity</span>
           </div>
         </div>
+
+        {/* AI Logistical Impact Intelligence */}
+        <ImpactInsightsCard
+          metrics={metrics}
+          statusDistribution={statusDistribution}
+          donorLeaderboard={donorLeaderboard}
+        />
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

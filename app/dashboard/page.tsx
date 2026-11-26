@@ -158,6 +158,34 @@ export default function DashboardPage() {
   return (
     <AppShell>
       <div className="space-y-6">
+        {/* Hackathon Interactive Demo Banner */}
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-forest to-emerald text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-elevation">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-mint/20 border border-mint/30 flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-5 h-5 text-mint" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-heading font-bold text-sm text-white">
+                  Interactive Judge Demo: Greenfield College Canteen (180 portions)
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-mint text-forest uppercase">
+                  10-Step Journey
+                </span>
+              </div>
+              <p className="text-xs text-mint/80 mt-0.5">
+                Experience end-to-end multi-party allocation, live vs offline AI mode, capacity constraint handling, and verified dispatch.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/demo"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-xl bg-mint text-forest hover:bg-white transition flex-shrink-0 shadow-subtle"
+          >
+            Launch Interactive Demo →
+          </Link>
+        </div>
+
         {/* Top Header & Fast Action */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>

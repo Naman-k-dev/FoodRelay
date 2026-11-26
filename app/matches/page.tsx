@@ -47,6 +47,7 @@ function MatchesContent() {
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const [showWeightSliders, setShowWeightSliders] = useState(false);
   const [reservationSuccess, setReservationSuccess] = useState(false);
+  const [isReserving, setIsReserving] = useState(false);
   const [matchViewMode, setMatchViewMode] = useState<"ranking" | "benchmark">("ranking");
 
   useEffect(() => {
@@ -101,98 +102,117 @@ function MatchesContent() {
     }
   };
 
-  // Confirm Plan: Reserve allocations, adjust balances
+  // Confirm Plan: Reserve allocations, adjust balances with race condition guard
   const handleConfirmReservationPlan = () => {
+    if (isReserving) return;
     if (!selectedDonation || !matchResult || matchResult.suggestedAllocations.length === 0) return;
 
-    const nowIso = new Date().toISOString();
-    let totalAllocatedInPlan = 0;
-
-    for (const item of matchResult.suggestedAllocations) {
-      const recipient = recipients.find((r) => r.id === item.recipientId);
-      if (!recipient) continue;
-
-      const allocId = `alloc-${Date.now().toString().slice(-4)}-${Math.floor(Math.random() * 900 + 100)}`;
-      const candidate = matchResult.eligibleMatches.find((m) => m.recipient.id === item.recipientId);
-
-      const allocation: Allocation = {
-        id: allocId,
-        donationId: selectedDonation.id,
-        recipientId: recipient.id,
-        allocatedPortions: item.allocatedPortions,
-        distanceKm: item.distanceKm,
-        score: item.score,
-        scoreBreakdown: candidate?.scoreBreakdown || {
-          urgencyScore: 70,
-          proximityScore: 80,
-          demandFitScore: 80,
-          readinessScore: 75,
-          rawWeights: weights,
-        },
-        status: "reserved",
-        reasons: [
-          `Matched with composite score ${item.score}/100`,
-          `Estimated straight-line distance: ${item.distanceKm} km`,
-          `Allocated ${item.allocatedPortions} meal portions`,
-        ],
-        unresolvedConstraints: [],
-        createdAt: nowIso,
-        updatedAt: nowIso,
-        timeline: [
-          {
-            status: "proposed",
-            timestamp: nowIso,
-            note: "RelayMatch heuristic allocation suggested",
-            actor: "RelayMatch Engine",
-          },
-          {
-            status: "reserved",
-            timestamp: nowIso,
-            note: "Coordinator confirmed suggested allocation plan",
-            actor: "Coordinator (Simulated)",
-          },
-        ],
-      };
-
-      // Save allocation
-      saveAllocation(allocation);
-
-      // Decrement recipient balances
-      const updatedRecipient = {
-        ...recipient,
-        remainingDemand: Math.max(0, recipient.remainingDemand - item.allocatedPortions),
-        availableCapacity: Math.max(0, recipient.availableCapacity - item.allocatedPortions),
-      };
-      saveRecipient(updatedRecipient);
-
-      totalAllocatedInPlan += item.allocatedPortions;
+    // Revalidate donation state
+    const currentDonation = donations.find((d) => d.id === selectedDonation.id);
+    if (!currentDonation || currentDonation.remainingQuantity <= 0) {
+      alert("This donation has already been allocated or has zero remaining balance.");
+      return;
     }
 
-    // Decrement donation remaining balance
-    const updatedDonation = {
-      ...selectedDonation,
-      remainingQuantity: Math.max(0, selectedDonation.remainingQuantity - totalAllocatedInPlan),
-      status: (selectedDonation.remainingQuantity - totalAllocatedInPlan === 0
-        ? "fully_allocated"
-        : "reserved") as any,
-      updatedAt: nowIso,
-      history: [
-        ...selectedDonation.history,
-        {
-          id: `hist-${Date.now()}`,
-          timestamp: nowIso,
-          action: "Allocations Reserved",
-          actor: "Relay Coordinator",
-          notes: `Reserved ${totalAllocatedInPlan} portions across ${matchResult.suggestedAllocations.length} recipient(s).`,
-        },
-      ],
-    };
-    saveDonation(updatedDonation);
+    const planTotal = matchResult.suggestedAllocations.reduce((sum, a) => sum + a.allocatedPortions, 0);
+    if (currentDonation.remainingQuantity < planTotal) {
+      alert(`Insufficient portions remaining (${currentDonation.remainingQuantity}) for this plan (${planTotal}).`);
+      return;
+    }
 
-    setReservationSuccess(true);
-    // Re-run matching to refresh remaining view
-    const refreshedResult = runRelayMatch(updatedDonation, recipients, weights, new Date());
-    setMatchResult(refreshedResult);
+    setIsReserving(true);
+    try {
+      const nowIso = new Date().toISOString();
+      let totalAllocatedInPlan = 0;
+
+      for (const item of matchResult.suggestedAllocations) {
+        const recipient = recipients.find((r) => r.id === item.recipientId);
+        if (!recipient) continue;
+
+        const allocId = `alloc-${Date.now().toString().slice(-4)}-${Math.floor(Math.random() * 900 + 100)}`;
+        const candidate = matchResult.eligibleMatches.find((m) => m.recipient.id === item.recipientId);
+
+        const allocation: Allocation = {
+          id: allocId,
+          donationId: selectedDonation.id,
+          recipientId: recipient.id,
+          allocatedPortions: item.allocatedPortions,
+          distanceKm: item.distanceKm,
+          score: item.score,
+          scoreBreakdown: candidate?.scoreBreakdown || {
+            urgencyScore: 70,
+            proximityScore: 80,
+            demandFitScore: 80,
+            readinessScore: 75,
+            rawWeights: weights,
+          },
+          status: "reserved",
+          reasons: [
+            `Matched with composite score ${item.score}/100`,
+            `Estimated straight-line distance: ${item.distanceKm} km`,
+            `Allocated ${item.allocatedPortions} meal portions`,
+          ],
+          unresolvedConstraints: [],
+          createdAt: nowIso,
+          updatedAt: nowIso,
+          timeline: [
+            {
+              status: "proposed",
+              timestamp: nowIso,
+              note: "RelayMatch heuristic allocation suggested",
+              actor: "RelayMatch Engine",
+            },
+            {
+              status: "reserved",
+              timestamp: nowIso,
+              note: "Coordinator confirmed suggested allocation plan",
+              actor: "Coordinator (Simulated)",
+            },
+          ],
+        };
+
+        // Save allocation
+        saveAllocation(allocation);
+
+        // Decrement recipient balances
+        const updatedRecipient = {
+          ...recipient,
+          remainingDemand: Math.max(0, recipient.remainingDemand - item.allocatedPortions),
+          availableCapacity: Math.max(0, recipient.availableCapacity - item.allocatedPortions),
+        };
+        saveRecipient(updatedRecipient);
+
+        totalAllocatedInPlan += item.allocatedPortions;
+      }
+
+      // Decrement donation remaining balance
+      const updatedDonation = {
+        ...selectedDonation,
+        remainingQuantity: Math.max(0, selectedDonation.remainingQuantity - totalAllocatedInPlan),
+        status: (selectedDonation.remainingQuantity - totalAllocatedInPlan === 0
+          ? "fully_allocated"
+          : "reserved") as any,
+        updatedAt: nowIso,
+        history: [
+          ...selectedDonation.history,
+          {
+            id: `hist-${Date.now()}`,
+            timestamp: nowIso,
+            action: "Allocations Reserved",
+            actor: "Relay Coordinator",
+            notes: `Reserved ${totalAllocatedInPlan} portions across ${matchResult.suggestedAllocations.length} recipient(s).`,
+          },
+        ],
+      };
+      saveDonation(updatedDonation);
+
+      setReservationSuccess(true);
+      // Re-run matching to refresh remaining view
+      const refreshedResult = runRelayMatch(updatedDonation, recipients, weights, new Date());
+      setMatchResult(refreshedResult);
+    } finally {
+      setIsReserving(false);
+    }
   };
 
   const handleResetWeights = () => {
@@ -535,10 +555,20 @@ function MatchesContent() {
                 {matchResult.suggestedAllocations.length > 0 && (
                   <button
                     onClick={handleConfirmReservationPlan}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-forest hover:bg-forest-light text-white text-xs font-bold shadow-subtle transition"
+                    disabled={isReserving}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-forest hover:bg-forest-light text-white text-xs font-bold shadow-subtle transition disabled:opacity-50"
                   >
-                    <CheckCircle2 className="w-4 h-4 text-mint" />
-                    Reserve Suggested Plan ({matchResult.allocatedPortions} Portions)
+                    {isReserving ? (
+                      <>
+                        <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white" />
+                        Reserving Allocations...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 text-mint" />
+                        Reserve Suggested Plan ({matchResult.allocatedPortions} Portions)
+                      </>
+                    )}
                   </button>
                 )}
               </div>

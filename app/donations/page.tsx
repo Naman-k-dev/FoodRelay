@@ -8,6 +8,7 @@ import { useFoodRelay } from "@/lib/storage/useFoodRelay";
 import { evaluateFoodSafetyGate } from "@/lib/safety/safetyGate";
 import { formatDateTime } from "@/lib/utils/format";
 import { Donation, SafetyReviewStatus } from "@/types";
+import { CommunicationDraftModal } from "@/components/ai/CommunicationDraftModal";
 import {
   PackageOpen,
   ShieldCheck,
@@ -27,6 +28,7 @@ import {
   Ban,
   Eye,
   History,
+  MessageSquare,
 } from "lucide-react";
 
 const SAFETY_STATUS_LABELS: Record<SafetyReviewStatus, { label: string; color: string }> = {
@@ -48,6 +50,7 @@ function DonationsContent() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedDonation, setSelectedDonation] = useState<Donation | null>(null);
   const [editingDonation, setEditingDonation] = useState<Donation | null>(null);
+  const [draftDonation, setDraftDonation] = useState<Donation | null>(null);
   const [modalTab, setModalTab] = useState<"safety" | "details" | "history">("safety");
 
   // Edit form state
@@ -463,6 +466,13 @@ function DonationsContent() {
                       title="Edit Donation"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setDraftDonation(d)}
+                      className="p-1.5 rounded-lg text-emerald hover:bg-mint/40 transition"
+                      title="Draft AI Communication"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
                     </button>
                     {d.status !== "delivered" && d.status !== "cancelled" && (
                       <button
@@ -969,6 +979,16 @@ function DonationsContent() {
               </form>
             </div>
           </div>
+        )}
+
+        {/* AI Communication Drafter Modal */}
+        {draftDonation && (
+          <CommunicationDraftModal
+            isOpen={!!draftDonation}
+            onClose={() => setDraftDonation(null)}
+            record={draftDonation}
+            defaultPurpose="donor_clarification"
+          />
         )}
       </div>
     </AppShell>

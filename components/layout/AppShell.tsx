@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/ui/Logo";
 import { useFoodRelay } from "@/lib/storage/useFoodRelay";
+import { RelayCopilotDrawer } from "@/components/ai/RelayCopilotDrawer";
 import {
   LayoutDashboard,
   PlusCircle,
@@ -24,6 +25,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Check,
+  Bot,
 } from "lucide-react";
 
 interface AppShellProps {
@@ -36,7 +38,8 @@ export function AppShell({ children }: AppShellProps) {
   const [showDemoGuide, setShowDemoGuide] = useState(false);
   const [guideStepIndex, setGuideStepIndex] = useState(0);
   const [guideViewMode, setGuideViewMode] = useState<"step" | "list">("step");
-  const { donations, resetDemo } = useFoodRelay();
+  const [showCopilot, setShowCopilot] = useState(false);
+  const { donations, recipients, allocations, resetDemo } = useFoodRelay();
 
   // Count pending reviews
   const pendingSafetyReviews = donations.filter(
@@ -47,6 +50,7 @@ export function AppShell({ children }: AppShellProps) {
 
   const navItems = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { label: "Live Demo", href: "/demo", icon: Sparkles, badge: "90s" },
     { label: "Intake / Donate", href: "/donate", icon: PlusCircle, badge: "AI" },
     {
       label: "Donations",
@@ -81,14 +85,21 @@ export function AppShell({ children }: AppShellProps) {
             FoodRelay Demonstration Prototype · Fictional Noida/Greater Noida Data
           </span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <button
-            onClick={() => setShowDemoGuide(true)}
+            onClick={() => setShowCopilot(true)}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-emerald hover:bg-emerald-dark px-3 py-1 rounded-xl transition shadow-subtle border border-mint/30"
+          >
+            <Bot className="w-3.5 h-3.5 text-mint" />
+            Relay Copilot
+          </button>
+          <Link
+            href="/demo"
             className="inline-flex items-center gap-1.5 text-xs font-bold text-forest bg-mint hover:bg-white px-3 py-1 rounded-xl transition shadow-subtle border border-emerald/30 animate-pulse"
           >
             <Sparkles className="w-3.5 h-3.5 text-forest" />
-            Launch Interactive Demo
-          </button>
+            Interactive Demo
+          </Link>
           <button
             onClick={handleResetDemo}
             className="inline-flex items-center gap-1 text-[11px] text-cream/80 hover:text-white px-2 py-1 rounded hover:bg-forest/50 transition"
@@ -453,6 +464,13 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </div>
       )}
+
+      {/* AI Relay Copilot Drawer */}
+      <RelayCopilotDrawer
+        isOpen={showCopilot}
+        onClose={() => setShowCopilot(false)}
+        contextData={{ donations, recipients, allocations }}
+      />
     </div>
   );
 }

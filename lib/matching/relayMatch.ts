@@ -115,9 +115,29 @@ export function runRelayMatch(
       ineligibleReasons.push("Recipient's receiving window has closed.");
     }
 
+    const recStart = new Date(recipient.receivingWindowStart).getTime();
+    const donEnd = new Date(donation.pickupWindowEnd).getTime();
+    if (!isNaN(recStart) && !isNaN(donEnd) && recStart > donEnd) {
+      ineligibleReasons.push("Recipient receiving window opens after donation pickup window ends.");
+    }
+
     // Constraint 7: Verification
     if (recipient.verificationStatus === "pending") {
       ineligibleReasons.push("Recipient NGO verification is pending.");
+    }
+
+    // Constraint 8: Valid Coordinates Check
+    if (
+      typeof recipient.latitude !== "number" ||
+      isNaN(recipient.latitude) ||
+      recipient.latitude < -90 ||
+      recipient.latitude > 90 ||
+      typeof recipient.longitude !== "number" ||
+      isNaN(recipient.longitude) ||
+      recipient.longitude < -180 ||
+      recipient.longitude > 180
+    ) {
+      ineligibleReasons.push("Recipient geographic coordinates are missing or invalid.");
     }
 
     // Calculate Straight-line Distance
@@ -173,11 +193,13 @@ export function runRelayMatch(
   for (const match of eligibleMatches) {
     if (remainingDonationPortions <= 0) break;
 
-    // Minimum of: remaining donation, recipient demand, recipient available capacity
-    const allocatable = Math.min(
-      remainingDonationPortions,
-      match.recipient.remainingDemand,
-      match.recipient.availableCapacity
+    // Minimum of: remaining donation, recipient demand, recipient available capacity (whole integer portions)
+    const allocatable = Math.floor(
+      Math.min(
+        remainingDonationPortions,
+        match.recipient.remainingDemand,
+        match.recipient.availableCapacity
+      )
     );
 
     if (allocatable > 0) {

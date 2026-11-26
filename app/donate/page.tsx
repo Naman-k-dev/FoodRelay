@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { useFoodRelay } from "@/lib/storage/useFoodRelay";
 import { ExtractedDraft } from "@/lib/schemas/intake";
+import { FoodScannerModal } from "@/components/ai/FoodScannerModal";
+import { VoiceDonationModal } from "@/components/ai/VoiceDonationModal";
+import { SmartReviewPanel } from "@/components/ai/SmartReviewPanel";
+import { ScannerResult } from "@/lib/schemas/scanner";
 import { Donation } from "@/types";
 import {
   Sparkles,
@@ -17,6 +21,8 @@ import {
   Info,
   HelpCircle,
   RotateCcw,
+  Camera,
+  Mic,
 } from "lucide-react";
 
 const SAMPLE_MESSAGES = [
@@ -53,12 +59,49 @@ export default function DonatePage() {
   // AI Intake State
   const [inputText, setInputText] = useState(SAMPLE_MESSAGES[0].text);
   const [isLoading, setIsLoading] = useState(false);
+  const [showScannerModal, setShowScannerModal] = useState(false);
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [extractionMeta, setExtractionMeta] = useState<{
     source: string;
     executionTimeMs: number;
     warnings: string[];
   } | null>(null);
   const [extractedDraft, setExtractedDraft] = useState<ExtractedDraft | null>(null);
+
+  // Handlers for Scanner and Voice
+  const handleApplyScannerObservations = (scan: ScannerResult) => {
+    setFormData((prev) => ({
+      ...prev,
+      foodDescription:
+        scan.visibleFoodItems.length > 0 ? scan.visibleFoodItems.join(", ") : prev.foodDescription,
+      foodCategory:
+        scan.estimatedFoodCategory !== "unknown"
+          ? (scan.estimatedFoodCategory as any)
+          : prev.foodCategory,
+      packagingCondition:
+        scan.visiblePackaging !== "unknown"
+          ? (scan.visiblePackaging as any)
+          : prev.packagingCondition,
+      dietaryCategory:
+        scan.suggestedDietaryCategory !== "uncertain"
+          ? (scan.suggestedDietaryCategory as any)
+          : prev.dietaryCategory,
+      handlingInformation: `Containers visually inspected as ${scan.containerCondition.replace(
+        "_",
+        " "
+      )}. ${prev.handlingInformation}`,
+    }));
+    setInputText(
+      `Photo Scanned: ${scan.visibleFoodItems.join(", ")} in ${scan.visiblePackaging.replace(
+        "_",
+        " "
+      )}.`
+    );
+  };
+
+  const handleApplyVoiceTranscript = (transcript: string) => {
+    setInputText(transcript);
+  };
 
   // Dates for defaults
   const now = new Date();
@@ -318,6 +361,35 @@ export default function DonatePage() {
                 paste Aadhaar/ID numbers, personal phone numbers, or private addresses into the AI input.
                 Messages are processed server-side as untrusted text.
               </div>
+            </div>
+
+            {/* 3 Intake Modes Selector */}
+            <div className="flex flex-wrap items-center gap-2 pt-1 pb-1">
+              <span className="text-xs font-semibold text-charcoal">Intake Channels:</span>
+              <button
+                type="button"
+                onClick={() => {}}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-forest text-white text-xs font-semibold shadow-subtle"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-mint" />
+                Text Message
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowScannerModal(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-cream text-forest border border-emerald/30 text-xs font-semibold shadow-subtle transition"
+              >
+                <Camera className="w-3.5 h-3.5 text-emerald" />
+                AI Food Scanner (Photo)
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowVoiceModal(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-cream text-forest border border-emerald/30 text-xs font-semibold shadow-subtle transition"
+              >
+                <Mic className="w-3.5 h-3.5 text-amber" />
+                Voice Intake (Spoken)
+              </button>
             </div>
 
             {/* Quick Sample Selector */}
@@ -690,6 +762,9 @@ export default function DonatePage() {
               />
             </div>
 
+            {/* AI Smart Review Advisory Panel */}
+            <SmartReviewPanel formData={formData} />
+
             {/* Explicit Confirmation Gate */}
             <div className="pt-3 border-t border-gray-100">
               <label className="flex items-start gap-2.5 cursor-pointer">
@@ -725,6 +800,20 @@ export default function DonatePage() {
             </button>
           </div>
         </form>
+
+        {/* AI Food Scanner Modal */}
+        <FoodScannerModal
+          isOpen={showScannerModal}
+          onClose={() => setShowScannerModal(false)}
+          onApplyObservations={handleApplyScannerObservations}
+        />
+
+        {/* AI Voice Donation Intake Modal */}
+        <VoiceDonationModal
+          isOpen={showVoiceModal}
+          onClose={() => setShowVoiceModal(false)}
+          onConfirmTranscript={handleApplyVoiceTranscript}
+        />
       </div>
     </AppShell>
   );

@@ -11,6 +11,7 @@ import {
 } from "@/lib/dispatch/transitions";
 import { formatDateTime } from "@/lib/utils/format";
 import { Allocation, AllocationStatus } from "@/types";
+import { CommunicationDraftModal } from "@/components/ai/CommunicationDraftModal";
 import {
   Truck,
   CheckCircle2,
@@ -24,6 +25,7 @@ import {
   PackageCheck,
   Building,
   RotateCcw,
+  MessageSquare,
 } from "lucide-react";
 
 export default function DispatchPage() {
@@ -38,6 +40,7 @@ export default function DispatchPage() {
   } = useFoodRelay();
 
   const [selectedReceiptAllocation, setSelectedReceiptAllocation] = useState<Allocation | null>(null);
+  const [draftAllocation, setDraftAllocation] = useState<Allocation | null>(null);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -83,10 +86,14 @@ export default function DispatchPage() {
     }
   };
 
-  // Cancel Allocation and Release portions
+  // Cancel Allocation and Release portions safely
   const handleCancelAllocation = (allocation: Allocation) => {
     if (allocation.status === "delivered") {
       alert("Delivered allocations cannot be cancelled.");
+      return;
+    }
+    if (allocation.status === "cancelled") {
+      alert("This allocation is already cancelled.");
       return;
     }
 
@@ -105,10 +112,13 @@ export default function DispatchPage() {
     );
     saveAllocation(updated);
 
-    // 2. Return portions to donation remaining balance
+    // 2. Return portions to donation remaining balance (capped at original total quantity)
     const donation = donations.find((d) => d.id === allocation.donationId);
     if (donation) {
-      const newRemaining = donation.remainingQuantity + allocation.allocatedPortions;
+      const newRemaining = Math.min(
+        donation.quantity,
+        donation.remainingQuantity + allocation.allocatedPortions
+      );
       const updatedDonation = {
         ...donation,
         remainingQuantity: newRemaining,
@@ -121,20 +131,26 @@ export default function DispatchPage() {
             timestamp: nowIso,
             action: "Reservation Cancelled",
             actor: "Coordinator",
-            notes: `Released ${allocation.allocatedPortions} portions back to donation.`,
+            notes: `Released ${allocation.allocatedPortions} portions back to donation pool.`,
           },
         ],
       };
       saveDonation(updatedDonation);
     }
 
-    // 3. Return capacity and demand to recipient
+    // 3. Return capacity and demand to recipient (capped at maximums)
     const recipient = recipients.find((r) => r.id === allocation.recipientId);
     if (recipient) {
       const updatedRecipient = {
         ...recipient,
-        remainingDemand: recipient.remainingDemand + allocation.allocatedPortions,
-        availableCapacity: recipient.availableCapacity + allocation.allocatedPortions,
+        remainingDemand: Math.min(
+          recipient.requestedMealPortions,
+          recipient.remainingDemand + allocation.allocatedPortions
+        ),
+        availableCapacity: Math.min(
+          recipient.receivingCapacity,
+          recipient.availableCapacity + allocation.allocatedPortions
+        ),
       };
       saveRecipient(updatedRecipient);
     }
@@ -265,6 +281,14 @@ export default function DispatchPage() {
                               View Handover Receipt
                             </button>
                           )}
+
+                          <button
+                            onClick={() => setDraftAllocation(item)}
+                            className="w-full py-1 px-2 rounded-lg bg-cream hover:bg-cream-dark text-charcoal text-[10px] font-semibold transition text-center flex items-center justify-center gap-1 border border-gray-200"
+                          >
+                            <MessageSquare className="w-3 h-3 text-emerald" />
+                            Draft AI Update
+                          </button>
 
                           {item.status !== "delivered" && item.status !== "cancelled" && (
                             <button
@@ -505,6 +529,16 @@ export default function DispatchPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* AI Dispatch Communication Drafter Modal */}
+        {draftAllocation && (
+          <CommunicationDraftModal
+            isOpen={!!draftAllocation}
+            onClose={() => setDraftAllocation(null)}
+            record={draftAllocation}
+            defaultPurpose="recipient_eta_notice"
+          />
         )}
       </div>
     </AppShell>

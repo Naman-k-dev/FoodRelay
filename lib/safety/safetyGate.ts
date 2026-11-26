@@ -31,8 +31,40 @@ export function evaluateFoodSafetyGate(
   }
 
   // 2. Quantity Validity
-  if (!donation.quantity || donation.quantity <= 0) {
+  if (
+    typeof donation.quantity !== "number" ||
+    isNaN(donation.quantity) ||
+    donation.quantity <= 0
+  ) {
     blockers.push("Quantity must be a positive number greater than zero.");
+  } else if (!Number.isInteger(donation.quantity)) {
+    blockers.push("Quantity must be a whole integer portion count.");
+  }
+
+  if (
+    typeof donation.remainingQuantity === "number" &&
+    (isNaN(donation.remainingQuantity) || donation.remainingQuantity <= 0)
+  ) {
+    blockers.push("Donation has zero or negative remaining portion balance.");
+  }
+
+  // 2b. Coordinates Validity
+  if (
+    typeof donation.latitude !== "number" ||
+    isNaN(donation.latitude) ||
+    donation.latitude < -90 ||
+    donation.latitude > 90 ||
+    typeof donation.longitude !== "number" ||
+    isNaN(donation.longitude) ||
+    donation.longitude < -180 ||
+    donation.longitude > 180
+  ) {
+    blockers.push("Pickup latitude and longitude must be valid geographic coordinates.");
+  }
+
+  // 2c. Donation Status
+  if (donation.status === "cancelled") {
+    blockers.push("Donation has been cancelled by donor.");
   }
 
   // 3. Preparation Time Check

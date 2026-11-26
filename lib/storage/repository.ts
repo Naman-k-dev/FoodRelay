@@ -82,11 +82,34 @@ export class FoodRelayRepository {
   }
 
   public static resetToDemo(): FoodRelayStoreState {
-    const fresh = this.initializeStore();
+    const current = this.getStore();
+    const seed = generateFictionalSeedData();
+
+    // Preserve user-created donations, recipients, and allocations
+    const userDonations = (current.donations || []).filter((d) => !d.isDemo);
+    const userRecipients = (current.recipients || []).filter((r) => !r.isDemo);
+    const userAllocations = (current.allocations || []).filter((a) =>
+      userDonations.some((ud) => ud.id === a.donationId)
+    );
+
+    const state: FoodRelayStoreState = {
+      version: 1,
+      donations: [...seed.donations, ...userDonations],
+      recipients: [...seed.recipients, ...userRecipients],
+      allocations: [...seed.allocations, ...userAllocations],
+      weights: DEFAULT_WEIGHTS,
+      lastUpdated: new Date().toISOString(),
+    };
+
     if (this.isClient()) {
-      window.dispatchEvent(new Event("foodrelay-store-change"));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        window.dispatchEvent(new Event("foodrelay-store-change"));
+      } catch (err) {
+        console.error("Failed to save reset state to localStorage:", err);
+      }
     }
-    return fresh;
+    return state;
   }
 
   public static exportJSON(): string {
