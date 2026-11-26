@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { extractWithFallbackHeuristics } from "@/lib/ai/fallbackExtractor";
+import { extractDonationDetails } from "@/lib/ai/geminiExtractor";
 import { ExtractedDraftSchema } from "@/lib/schemas/intake";
 
 describe("Multilingual Intake Extractor & Zod Schema Validation", () => {
@@ -37,5 +38,15 @@ describe("Multilingual Intake Extractor & Zod Schema Validation", () => {
     expect(draft.quantityUnit).toBe("kg");
     expect(draft.ambiguousFields).toContain("quantityUnit");
     expect(draft.followUpQuestions[0]).toContain("How many meal portions does this represent");
+  });
+
+  it("handles extractDonationDetails with fail-safe fallback and returns validated draft", async () => {
+    const res = await extractDonationDetails(
+      "We have 120 extra vegetarian meal portions from our college canteen in Sector 62, Noida. Prepared at 12 PM and packed in sealed containers. Pickup is available until 2 PM."
+    );
+    expect(res.draft).toBeDefined();
+    expect(res.draft.quantity).toBe(120);
+    expect(res.draft.quantityUnit).toBe("portions");
+    expect(res.source).toBeDefined();
   });
 });
