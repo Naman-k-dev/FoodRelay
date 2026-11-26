@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { executeGeminiRequest } from "@/lib/ai/geminiClient";
 import { SmartReviewResultSchema, SmartReviewResult } from "@/lib/schemas/review";
+import {
+  getClientIp,
+  checkRateLimit,
+  enforceMaxPayload,
+} from "@/lib/security/requestGuard";
 
 const REVIEW_SYSTEM_PROMPT = `You are FoodRelay's AI Smart Review auditor.
 Inspect the submitted surplus food donation draft for completeness, data consistency, and alignment with Indian FSSAI surplus food guidelines.
@@ -15,7 +20,41 @@ Return ONLY valid JSON matching the schema.`;
 
 export async function POST(req: NextRequest) {
   try {
-    const draft = await req.json();
+    // 1. Enforce payload size limit (max 128KB)
+    const payloadCheck = enforceMaxPayload(req, 128 * 1024);
+    if (!payloadCheck.ok) {
+      return NextResponse.json(
+        { error: payloadCheck.error },
+        { status: payloadCheck.status || 413 }
+      );
+    }
+
+    // 2. Rate limiting (max 25 requests/min per IP)
+    const clientIp = getClientIp(req);
+    const rateCheck = checkRateLimit(clientIp, "review", 25, 60_000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: "Review audit rate limit exceeded. Please wait a minute." },
+        { status: 429 }
+      );
+    }
+
+    let draft: any;
+    try {
+      draft = await req.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body." },
+        { status: 400 }
+      );
+    }
+
+    if (!draft || typeof draft !== "object" || Array.isArray(draft)) {
+      return NextResponse.json(
+        { error: "Draft object is required for review." },
+        { status: 400 }
+      );
+    }
 
     const prompt = `Review this surplus food donation draft:
 ${JSON.stringify(draft, null, 2)}
@@ -58,23 +97,23 @@ Respond ONLY with a JSON object matching this schema:
     } catch (aiErr: any) {
       // Deterministic rule-based Smart Review fallback
       const findings = [];
-      if (!draft.handlingInformation || draft.handlingInformation.length < 10) {
+      if (!draft.handlingInformation || String(draft.handlingInformation).length < 10) {
         findings.push({
           severity: "warning" as const,
           fieldName: "handlingInformation",
           title: "Vague Handling Instructions",
           description: "Thermal instructions should specify temperature range (e.g. > 60°C).",
-          evidence: draft.handlingInformation || "None",
+          evidence: String(draft.handlingInformation || "None"),
           suggestedAction: "Specify temperature maintenance protocol during transit.",
         });
       }
-      if (draft.unit !== "portions") {
+      if (draft.unit && draft.unit !== "portions") {
         findings.push({
           severity: "blocker" as const,
           fieldName: "unit",
           title: "Non-Portion Unit",
           description: `Unit is '${draft.unit}'. RelayMatch requires confirmed portion counts.`,
-          evidence: draft.unit || "unknown",
+          evidence: String(draft.unit || "unknown"),
           suggestedAction: "Confirm portion conversion before submitting.",
         });
       }

@@ -1,39 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { IntakeRequestSchema } from "@/lib/schemas/intake";
 import { extractDonationDetails } from "@/lib/ai/geminiExtractor";
-
-// Simple in-memory rate-limiter for basic abuse throttling (sliding window)
-// Note: Documented clearly that in-memory maps do not persist across multiple serverless lambdas.
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
-const MAX_REQUESTS_PER_WINDOW = 15;
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const record = rateLimitMap.get(ip);
-
-  if (!record || now > record.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return false;
-  }
-
-  if (record.count >= MAX_REQUESTS_PER_WINDOW) {
-    return true;
-  }
-
-  record.count++;
-  return false;
-}
+import {
+  getClientIp,
+  checkRateLimit,
+  enforceMaxPayload,
+  sanitizeInputString,
+} from "@/lib/security/requestGuard";
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Client IP for basic throttling
-    const clientIp =
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      req.headers.get("x-real-ip") ||
-      "127.0.0.1";
+    // 1. Enforce payload size limit (max 64KB for text intake)
+    const payloadCheck = enforceMaxPayload(req, 64 * 1024);
+    if (!payloadCheck.ok) {
+      return NextResponse.json(
+        { error: payloadCheck.error },
+        { status: payloadCheck.status || 413 }
+      );
+    }
 
-    if (isRateLimited(clientIp)) {
+    // 2. Client IP rate-limiting (max 20 requests/minute)
+    const clientIp = getClientIp(req);
+    const rateCheck = checkRateLimit(clientIp, "intake", 20, 60_000);
+    if (!rateCheck.allowed) {
       return NextResponse.json(
         {
           error: "Rate limit exceeded. Please wait a minute before submitting another AI extraction request.",
@@ -42,7 +31,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Parse request payload
+    // 3. Parse request payload
     let body;
     try {
       body = await req.json();
@@ -53,7 +42,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Schema validation with Zod
+    // Sanitize message before schema parsing
+    if (body && typeof body.message === "string") {
+      body.message = sanitizeInputString(body.message, 2000);
+    }
+
+    // 4. Schema validation with Zod
     const parsed = IntakeRequestSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
@@ -67,7 +61,7 @@ export async function POST(req: NextRequest) {
 
     const { message } = parsed.data;
 
-    // 4. Run AI extraction
+    // 5. Run AI extraction
     const result = await extractDonationDetails(message);
 
     return NextResponse.json({

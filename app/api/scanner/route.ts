@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { executeGeminiRequest } from "@/lib/ai/geminiClient";
 import { ScannerResultSchema, ScannerResult } from "@/lib/schemas/scanner";
+import {
+  getClientIp,
+  checkRateLimit,
+  enforceMaxPayload,
+  validateBase64Image,
+  sanitizeInputString,
+} from "@/lib/security/requestGuard";
 
 const SCANNER_SYSTEM_PROMPT = `You are FoodRelay's multimodal food donation scanner.
 Analyze the provided food photograph to assist human coordinators in creating a preliminary donation draft.
@@ -12,23 +19,67 @@ CRITICAL SAFETY BOUNDARIES:
 5. Identify uncertain observations and ask relevant follow-up questions for coordinator review.
 Return ONLY a valid JSON object matching the requested schema.`;
 
+const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+]);
+
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { imageBase64, mimeType = "image/jpeg", notes = "" } = body;
-
-    if (!imageBase64 || typeof imageBase64 !== "string") {
+    // 1. Enforce payload size limit (max 8MB HTTP request)
+    const payloadCheck = enforceMaxPayload(req, 8 * 1024 * 1024);
+    if (!payloadCheck.ok) {
       return NextResponse.json(
-        { error: "Image data (base64 string) is required." },
+        { error: payloadCheck.error },
+        { status: payloadCheck.status || 413 }
+      );
+    }
+
+    // 2. Rate limiting (max 15 requests/min per IP)
+    const clientIp = getClientIp(req);
+    const rateCheck = checkRateLimit(clientIp, "scanner", 15, 60_000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: "Scanner rate limit exceeded. Please wait a minute before analyzing more photos." },
+        { status: 429 }
+      );
+    }
+
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body." },
         { status: 400 }
       );
     }
 
-    // Clean base64 data prefix if present (e.g. data:image/jpeg;base64,...)
-    const cleanData = imageBase64.replace(/^data:[^;]+;base64,/, "");
+    const { imageBase64, mimeType = "image/jpeg", notes = "" } = body;
+
+    // 3. Validate image format & size
+    const imageValidation = validateBase64Image(imageBase64, 7 * 1024 * 1024);
+    if (!imageValidation.valid || !imageValidation.cleanBase64) {
+      return NextResponse.json(
+        { error: imageValidation.error || "Invalid image data." },
+        { status: 400 }
+      );
+    }
+
+    const normalizedMime = typeof mimeType === "string" ? mimeType.toLowerCase() : "image/jpeg";
+    if (!ALLOWED_MIME_TYPES.has(normalizedMime)) {
+      return NextResponse.json(
+        { error: "Unsupported image format. Allowed formats: JPEG, PNG, WebP." },
+        { status: 400 }
+      );
+    }
+
+    const sanitizedNotes = sanitizeInputString(notes, 500);
 
     const prompt = `Inspect this food surplus image for preliminary donation intake.
-Optional donor notes: "${notes}"
+Optional donor notes: "${sanitizedNotes}"
 
 Respond ONLY with a JSON object with this schema:
 {
@@ -50,8 +101,8 @@ Respond ONLY with a JSON object with this schema:
         systemInstruction: SCANNER_SYSTEM_PROMPT,
         prompt,
         inlineMedia: {
-          data: cleanData,
-          mimeType,
+          data: imageValidation.cleanBase64,
+          mimeType: normalizedMime,
         },
       });
 

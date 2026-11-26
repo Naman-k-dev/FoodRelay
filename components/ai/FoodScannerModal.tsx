@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
+import Image from "next/image";
 import {
   Camera,
   Upload,
@@ -50,6 +51,16 @@ export function FoodScannerModal({
     null
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Keyboard shortcut: close on Escape
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -118,16 +129,21 @@ export function FoodScannerModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="scanner-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
+    >
       <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 shadow-elevation border border-gray-100 space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
             <div className="p-2.5 bg-mint rounded-2xl text-forest">
-              <Camera className="w-5 h-5 text-emerald" />
+              <Camera className="w-5 h-5 text-emerald" aria-hidden="true" />
             </div>
             <div>
-              <h3 className="font-heading font-extrabold text-lg text-forest">
+              <h3 id="scanner-modal-title" className="font-heading font-extrabold text-lg text-forest">
                 AI Food Donation Scanner
               </h3>
               <p className="text-xs text-charcoal-muted">
@@ -232,9 +248,12 @@ export function FoodScannerModal({
           <div className="space-y-3">
             <div className="h-48 rounded-2xl bg-forest-dark/80 border border-gray-200 overflow-hidden flex items-center justify-center relative">
               {imagePreview ? (
-                <img
+                <Image
                   src={imagePreview}
                   alt="Food Donation Preview"
+                  width={400}
+                  height={192}
+                  unoptimized
                   className="w-full h-full object-cover"
                 />
               ) : (

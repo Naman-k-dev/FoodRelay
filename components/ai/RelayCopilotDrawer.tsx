@@ -44,6 +44,16 @@ export function RelayCopilotDrawer({
     },
   ]);
 
+  // Keyboard shortcut: close on Escape
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleAsk = async (questionText: string) => {
@@ -91,16 +101,23 @@ export function RelayCopilotDrawer({
   };
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-white shadow-elevation border-l border-gray-100 flex flex-col justify-between">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="copilot-drawer-title"
+      className="fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-white shadow-elevation border-l border-gray-100 flex flex-col justify-between"
+    >
       {/* Top Bar */}
       <div className="p-4 bg-forest text-white flex items-center justify-between border-b border-forest-light/30">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-lg bg-emerald text-mint">
-            <Bot className="w-4 h-4 text-white" />
+            <Bot className="w-4 h-4 text-white" aria-hidden="true" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-heading font-extrabold text-sm">Relay Copilot</h3>
+              <h3 id="copilot-drawer-title" className="font-heading font-extrabold text-sm">
+                Relay Copilot
+              </h3>
               <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-mint text-forest uppercase">
                 Grounded AI
               </span>

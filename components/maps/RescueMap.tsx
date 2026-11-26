@@ -3,12 +3,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Donation, Recipient, Allocation } from "@/types";
 import { calculateHaversineDistanceKm } from "@/lib/matching/distance";
-import { MapPin, AlertCircle, Compass, Layers, ShieldCheck } from "lucide-react";
+import { MapPin, Layers, Info, AlertCircle } from "lucide-react";
 
 interface RescueMapProps {
   donations: Donation[];
   recipients: Recipient[];
-  allocations: Allocation[];
+  allocations?: Allocation[];
   selectedDonationId?: string;
   onSelectDonation?: (id: string) => void;
 }
@@ -16,14 +16,13 @@ interface RescueMapProps {
 export function RescueMap({
   donations,
   recipients,
-  allocations,
+  allocations = [],
   selectedDonationId,
   onSelectDonation,
 }: RescueMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const layerGroupRef = useRef<any>(null);
-
   const [mapError, setMapError] = useState(false);
   const [isSchematicView, setIsSchematicView] = useState(false);
 
@@ -61,7 +60,88 @@ export function RescueMap({
           mapInstanceRef.current = map;
         }
 
-        renderMarkers(L);
+        // Render markers directly inside effect with fresh closure variables
+        if (!layerGroupRef.current || !mapInstanceRef.current) return;
+        layerGroupRef.current.clearLayers();
+
+        // 1. Recipient Markers (Blue/Emerald circles)
+        recipients.forEach((rec) => {
+          const recIcon = L.divIcon({
+            className: "custom-rec-pin",
+            html: `<div style="background-color: #123B2B; color: #DCFCE7; border: 2px solid #FFFFFF; border-radius: 9999px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">R</div>`,
+            iconSize: [26, 26],
+            iconAnchor: [13, 13],
+          });
+
+          const marker = L.marker([rec.latitude, rec.longitude], { icon: recIcon });
+          marker.bindPopup(`
+            <div style="font-family: inherit; font-size: 12px; line-height: 1.4; color: #17241C;">
+              <strong style="color: #123B2B; font-size: 13px;">${rec.organizationName}</strong><br/>
+              <span style="color: #64748B;">${rec.location}</span><br/>
+              <strong>Portion Demand:</strong> ${rec.remainingDemand} of ${rec.requestedMealPortions}<br/>
+              <strong>Capacity:</strong> ${rec.availableCapacity} / ${rec.receivingCapacity}<br/>
+              <strong>Urgency:</strong> <span style="text-transform: uppercase; font-weight: bold;">${rec.urgencyLevel}</span>
+            </div>
+          `);
+          marker.addTo(layerGroupRef.current);
+        });
+
+        // 2. Donor Markers (Emerald/Amber circles)
+        donations.forEach((don) => {
+          const isSelected = don.id === selectedDonationId;
+          const donIcon = L.divIcon({
+            className: "custom-don-pin",
+            html: `<div style="background-color: ${isSelected ? "#DC2626" : "#15803D"}; color: #FFFFFF; border: 2px solid #FFFFFF; border-radius: 9999px; width: ${isSelected ? "32px" : "26px"}; height: ${isSelected ? "32px" : "26px"}; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.4);">D</div>`,
+            iconSize: isSelected ? [32, 32] : [26, 26],
+            iconAnchor: isSelected ? [16, 16] : [13, 13],
+          });
+
+          const marker = L.marker([don.latitude, don.longitude], { icon: donIcon });
+          marker.bindPopup(`
+            <div style="font-family: inherit; font-size: 12px; line-height: 1.4; color: #17241C;">
+              <strong style="color: #123B2B; font-size: 13px;">${don.donorName}</strong><br/>
+              <span style="color: #64748B;">${don.foodDescription}</span><br/>
+              <strong>Available:</strong> ${don.remainingQuantity} portions<br/>
+              <strong>Safety Review:</strong> <span style="font-weight: bold; color: ${don.safetyReviewStatus === "eligible_for_matching" ? "#15803D" : "#D97706"};">${don.safetyReviewStatus.replace("_", " ")}</span>
+            </div>
+          `);
+
+          if (onSelectDonation) {
+            marker.on("click", () => onSelectDonation(don.id));
+          }
+          marker.addTo(layerGroupRef.current);
+        });
+
+        // 3. Draw Proposed Straight-Line Geographic Links from Active Donation to Recipients
+        if (activeDonation) {
+          recipients.forEach((rec) => {
+            const distKm = calculateHaversineDistanceKm(
+              activeDonation.latitude,
+              activeDonation.longitude,
+              rec.latitude,
+              rec.longitude
+            );
+
+            const polyline = L.polyline(
+              [
+                [activeDonation.latitude, activeDonation.longitude],
+                [rec.latitude, rec.longitude],
+              ],
+              {
+                color: "#15803D",
+                weight: 2,
+                dashArray: "6, 6",
+                opacity: 0.7,
+              }
+            );
+
+            polyline.bindTooltip(`Proposed Link: ~${distKm} km straight-line`, {
+              permanent: false,
+              direction: "center",
+            });
+            polyline.addTo(layerGroupRef.current);
+          });
+        }
       } catch (err) {
         console.warn("Leaflet map initialization warning, using schematic fallback:", err);
         if (isMounted) setMapError(true);
@@ -73,93 +153,7 @@ export function RescueMap({
     return () => {
       isMounted = false;
     };
-  }, [donations, recipients, selectedDonationId]);
-
-  const renderMarkers = (L: any) => {
-    if (!layerGroupRef.current || !mapInstanceRef.current) return;
-    layerGroupRef.current.clearLayers();
-
-    // 1. Recipient Markers (Blue/Emerald circles)
-    recipients.forEach((rec) => {
-      const recIcon = L.divIcon({
-        className: "custom-rec-pin",
-        html: `<div style="background-color: #123B2B; color: #DCFCE7; border: 2px solid #FFFFFF; border-radius: 9999px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">R</div>`,
-        iconSize: [26, 26],
-        iconAnchor: [13, 13],
-      });
-
-      const marker = L.marker([rec.latitude, rec.longitude], { icon: recIcon });
-      marker.bindPopup(`
-        <div style="font-family: inherit; font-size: 12px; line-height: 1.4; color: #17241C;">
-          <strong style="color: #123B2B; font-size: 13px;">${rec.organizationName}</strong><br/>
-          <span style="color: #64748B;">${rec.location}</span><br/>
-          <strong>Portion Demand:</strong> ${rec.remainingDemand} of ${rec.requestedMealPortions}<br/>
-          <strong>Capacity:</strong> ${rec.availableCapacity} / ${rec.receivingCapacity}<br/>
-          <strong>Urgency:</strong> <span style="text-transform: uppercase; font-weight: bold;">${rec.urgencyLevel}</span>
-        </div>
-      `);
-      marker.addTo(layerGroupRef.current);
-    });
-
-    // 2. Donor Markers (Emerald/Amber circles)
-    donations.forEach((don) => {
-      const isSelected = don.id === selectedDonationId;
-      const donIcon = L.divIcon({
-        className: "custom-don-pin",
-        html: `<div style="background-color: ${isSelected ? "#DC2626" : "#15803D"}; color: #FFFFFF; border: 2px solid #FFFFFF; border-radius: 9999px; width: ${isSelected ? "32px" : "26px"}; height: ${isSelected ? "32px" : "26px"}; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.4);">D</div>`,
-        iconSize: isSelected ? [32, 32] : [26, 26],
-        iconAnchor: isSelected ? [16, 16] : [13, 13],
-      });
-
-      const marker = L.marker([don.latitude, don.longitude], { icon: donIcon });
-      marker.bindPopup(`
-        <div style="font-family: inherit; font-size: 12px; line-height: 1.4; color: #17241C;">
-          <strong style="color: #123B2B; font-size: 13px;">${don.donorName}</strong><br/>
-          <span style="color: #64748B;">${don.foodDescription}</span><br/>
-          <strong>Available:</strong> ${don.remainingQuantity} portions<br/>
-          <strong>Safety Review:</strong> <span style="font-weight: bold; color: ${don.safetyReviewStatus === "eligible_for_matching" ? "#15803D" : "#D97706"};">${don.safetyReviewStatus.replace("_", " ")}</span>
-        </div>
-      `);
-
-      if (onSelectDonation) {
-        marker.on("click", () => onSelectDonation(don.id));
-      }
-      marker.addTo(layerGroupRef.current);
-    });
-
-    // 3. Draw Proposed Straight-Line Geographic Links from Active Donation to Recipients
-    if (activeDonation) {
-      recipients.forEach((rec) => {
-        // Draw connection lines
-        const distKm = calculateHaversineDistanceKm(
-          activeDonation.latitude,
-          activeDonation.longitude,
-          rec.latitude,
-          rec.longitude
-        );
-
-        const polyline = L.polyline(
-          [
-            [activeDonation.latitude, activeDonation.longitude],
-            [rec.latitude, rec.longitude],
-          ],
-          {
-            color: "#15803D",
-            weight: 2,
-            dashArray: "6, 6",
-            opacity: 0.7,
-          }
-        );
-
-        polyline.bindTooltip(`Proposed Link: ~${distKm} km straight-line`, {
-          permanent: false,
-          sticky: true,
-        });
-
-        polyline.addTo(layerGroupRef.current);
-      });
-    }
-  };
+  }, [donations, recipients, selectedDonationId, activeDonation, onSelectDonation]);
 
   return (
     <div className="space-y-4">

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import QRCode from "qrcode";
 import { AppShell } from "@/components/layout/AppShell";
 import { useFoodRelay } from "@/lib/storage/useFoodRelay";
@@ -467,9 +468,12 @@ export default function DispatchPage() {
                 {/* QR Code Section */}
                 <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center gap-4">
                   {qrCodeDataUrl ? (
-                    <img
+                    <Image
                       src={qrCodeDataUrl}
                       alt="Donation Verification QR"
+                      width={96}
+                      height={96}
+                      unoptimized
                       className="w-24 h-24 rounded-lg border border-gray-200 bg-white p-1"
                     />
                   ) : (

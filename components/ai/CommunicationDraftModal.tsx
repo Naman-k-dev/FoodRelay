@@ -23,6 +23,16 @@ export function CommunicationDraftModal({
   const [draft, setDraft] = useState<CommunicationDraftResult | null>(null);
   const [isCopied, setIsCopied] = useState(false);
 
+  // Keyboard shortcut: close on Escape
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleGenerate = async () => {
@@ -59,16 +69,21 @@ export function CommunicationDraftModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="draft-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
+    >
       <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-elevation border border-gray-100 space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
             <div className="p-2.5 bg-mint rounded-2xl text-forest">
-              <MessageSquare className="w-5 h-5 text-emerald" />
+              <MessageSquare className="w-5 h-5 text-emerald" aria-hidden="true" />
             </div>
             <div>
-              <h3 className="font-heading font-extrabold text-lg text-forest">
+              <h3 id="draft-modal-title" className="font-heading font-extrabold text-lg text-forest">
                 AI Logistics Message Drafter
               </h3>
               <p className="text-xs text-charcoal-muted">

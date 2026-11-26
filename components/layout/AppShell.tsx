@@ -74,8 +74,26 @@ export function AppShell({ children }: AppShellProps) {
     }
   };
 
+  // Keyboard shortcut: close tour on Escape
+  React.useEffect(() => {
+    if (!showDemoGuide) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowDemoGuide(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showDemoGuide]);
+
   return (
     <div className="min-h-screen bg-cream flex flex-col">
+      {/* WCAG 2.2 Level AA Skip Link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2.5 focus:bg-forest focus:text-mint focus:font-bold focus:rounded-xl focus:shadow-elevation focus:outline-none focus:ring-2 focus:ring-mint"
+      >
+        Skip to main content
+      </a>
+
       {/* Top Demo Disclosure Banner */}
       <div className="bg-forest-dark text-mint text-xs px-4 py-2 border-b border-forest flex flex-wrap items-center justify-between gap-2 z-50">
         <div className="flex items-center gap-2">
@@ -133,6 +151,7 @@ export function AppShell({ children }: AppShellProps) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={isActive ? "page" : undefined}
                   className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                     isActive
                       ? "bg-emerald text-white shadow-subtle"
@@ -140,7 +159,7 @@ export function AppShell({ children }: AppShellProps) {
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className={`w-4 h-4 ${isActive ? "text-mint" : "text-cream/70"}`} />
+                    <Icon className={`w-4 h-4 ${isActive ? "text-mint" : "text-cream/70"}`} aria-hidden="true" />
                     <span>{item.label}</span>
                   </div>
 
@@ -208,12 +227,13 @@ export function AppShell({ children }: AppShellProps) {
                     key={item.href}
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
+                    aria-current={isActive ? "page" : undefined}
                     className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium ${
                       isActive ? "bg-emerald text-white" : "text-cream/80 hover:bg-forest-light/40"
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <Icon className="w-4 h-4 text-mint" />
+                      <Icon className="w-4 h-4 text-mint" aria-hidden="true" />
                       <span>{item.label}</span>
                     </div>
                     {item.count !== undefined && (
@@ -228,7 +248,7 @@ export function AppShell({ children }: AppShellProps) {
           )}
 
           {/* Main Route Content */}
-          <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+          <main id="main-content" tabIndex={-1} className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto outline-none">
             {children}
           </main>
         </div>
@@ -236,17 +256,22 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Guided 90-Second Judge Demo Tour Modal */}
       {showDemoGuide && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="tour-dialog-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
+        >
           <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 shadow-elevation border border-gray-100 flex flex-col justify-between">
             {/* Modal Header */}
             <div>
               <div className="flex items-center justify-between pb-4 border-b border-gray-100">
                 <div className="flex items-center gap-2.5">
                   <div className="p-2.5 bg-mint rounded-2xl text-forest">
-                    <Sparkles className="w-5 h-5 text-emerald" />
+                    <Sparkles className="w-5 h-5 text-emerald" aria-hidden="true" />
                   </div>
                   <div>
-                    <h3 className="font-heading font-extrabold text-lg text-forest">
+                    <h3 id="tour-dialog-title" className="font-heading font-extrabold text-lg text-forest">
                       90-Second Guided Judge Demo Tour
                     </h3>
                     <p className="text-xs text-charcoal-muted">

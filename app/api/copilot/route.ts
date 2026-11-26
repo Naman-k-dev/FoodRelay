@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { executeGeminiRequest } from "@/lib/ai/geminiClient";
 import { CopilotResultSchema, CopilotResult } from "@/lib/schemas/copilot";
+import {
+  getClientIp,
+  checkRateLimit,
+  enforceMaxPayload,
+  sanitizeInputString,
+} from "@/lib/security/requestGuard";
 
 const COPILOT_SYSTEM_PROMPT = `You are Relay Copilot, an AI operations coordinator for FoodRelay AI surplus food redistribution platform.
 You are strictly an operational assistant grounded in the provided application records.
@@ -14,7 +20,36 @@ Return ONLY valid JSON matching the schema.`;
 
 export async function POST(req: NextRequest) {
   try {
-    const { question, context } = await req.json();
+    // 1. Enforce payload size limit (max 256KB)
+    const payloadCheck = enforceMaxPayload(req, 256 * 1024);
+    if (!payloadCheck.ok) {
+      return NextResponse.json(
+        { error: payloadCheck.error },
+        { status: payloadCheck.status || 413 }
+      );
+    }
+
+    // 2. Rate limiting (max 25 queries/min per IP)
+    const clientIp = getClientIp(req);
+    const rateCheck = checkRateLimit(clientIp, "copilot", 25, 60_000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: "Copilot query rate limit exceeded. Please wait a minute." },
+        { status: 429 }
+      );
+    }
+
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body." },
+        { status: 400 }
+      );
+    }
+
+    const { question, context } = body || {};
 
     if (!question || typeof question !== "string") {
       return NextResponse.json(
@@ -23,10 +58,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const prompt = `User Question: "${question}"
+    const sanitizedQuestion = sanitizeInputString(question, 2000);
+    if (sanitizedQuestion.length < 2) {
+      return NextResponse.json(
+        { error: "Question must be at least 2 characters long." },
+        { status: 400 }
+      );
+    }
+
+    // Bound context records to prevent context window explosion or DoS
+    const boundedContext = {
+      donations: Array.isArray(context?.donations) ? context.donations.slice(0, 40) : [],
+      recipients: Array.isArray(context?.recipients) ? context.recipients.slice(0, 40) : [],
+      allocations: Array.isArray(context?.allocations) ? context.allocations.slice(0, 40) : [],
+    };
+
+    const prompt = `User Question: "${sanitizedQuestion}"
 
 Current Grounded Application Records:
-${JSON.stringify(context || {}, null, 2)}
+${JSON.stringify(boundedContext, null, 2)}
 
 Respond ONLY with a JSON object matching this schema:
 {
@@ -57,7 +107,7 @@ Respond ONLY with a JSON object matching this schema:
       });
     } catch (aiErr: any) {
       // Deterministic Copilot Fallback
-      const donations = context?.donations || [];
+      const donations = boundedContext.donations;
       const urgentDonations = donations.filter(
         (d: any) =>
           d.safetyReviewStatus === "awaiting_human_review" ||

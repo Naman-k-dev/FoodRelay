@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { executeGeminiRequest } from "@/lib/ai/geminiClient";
 import { CommunicationDraftResultSchema, CommunicationDraftResult } from "@/lib/schemas/drafts";
+import {
+  getClientIp,
+  checkRateLimit,
+  enforceMaxPayload,
+  sanitizeInputString,
+} from "@/lib/security/requestGuard";
 
 const DRAFTER_SYSTEM_PROMPT = `You are FoodRelay's AI Communication Drafter.
 Generate polite, professional, and concise communication templates for surplus food logistics.
@@ -10,18 +16,52 @@ RULES:
 3. This is for copy-pasting only; messages are never sent automatically.
 Return ONLY valid JSON matching the schema.`;
 
+const VALID_LANGUAGES = new Set(["english", "hindi"]);
+
 export async function POST(req: NextRequest) {
   try {
-    const { purpose, record, language = "english" } = await req.json();
+    // 1. Enforce payload size limit (max 128KB)
+    const payloadCheck = enforceMaxPayload(req, 128 * 1024);
+    if (!payloadCheck.ok) {
+      return NextResponse.json(
+        { error: payloadCheck.error },
+        { status: payloadCheck.status || 413 }
+      );
+    }
 
-    const prompt = `Generate a ${language} message for purpose: "${purpose}".
+    // 2. Rate limiting (max 25 requests/min per IP)
+    const clientIp = getClientIp(req);
+    const rateCheck = checkRateLimit(clientIp, "draft-message", 25, 60_000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: "Message drafter rate limit exceeded. Please wait a minute." },
+        { status: 429 }
+      );
+    }
+
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body." },
+        { status: 400 }
+      );
+    }
+
+    const { purpose = "donor_clarification", record, language = "english" } = body || {};
+
+    const sanitizedPurpose = sanitizeInputString(purpose, 150);
+    const selectedLanguage = VALID_LANGUAGES.has(language) ? language : "english";
+
+    const prompt = `Generate a ${selectedLanguage} message for purpose: "${sanitizedPurpose}".
 Record details: ${JSON.stringify(record || {}, null, 2)}
 
 Respond ONLY with a JSON object matching this schema:
 {
   "subject": "string",
   "body": "string",
-  "language": "${language}",
+  "language": "${selectedLanguage}",
   "targetAudience": "donor" | "recipient" | "logistics_partner"
 }`;
 
@@ -44,7 +84,7 @@ Respond ONLY with a JSON object matching this schema:
         },
       });
     } catch (aiErr: any) {
-      const isHindi = language === "hindi";
+      const isHindi = selectedLanguage === "hindi";
       const fallbackData: CommunicationDraftResult = {
         subject: isHindi
           ? `FoodRelay: भोजन बचाव पिकअप समन्वय (${record?.donorName || "दान"})`
