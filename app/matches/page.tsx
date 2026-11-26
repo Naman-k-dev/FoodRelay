@@ -6,6 +6,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { useFoodRelay } from "@/lib/storage/useFoodRelay";
 import { runRelayMatch, DEFAULT_WEIGHTS } from "@/lib/matching/relayMatch";
 import { MatchingBenchmarkUI } from "@/components/matching/MatchingBenchmarkUI";
+import { RescueDigitalTwinUI } from "@/components/matching/RescueDigitalTwinUI";
 import { Donation, MatchingWeights, MatchResult, Allocation } from "@/types";
 import { formatDateTime } from "@/lib/utils/format";
 import {
@@ -23,12 +24,14 @@ import {
   Building,
   Sparkles,
   Layers,
+  Activity,
 } from "lucide-react";
 
 function MatchesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialDonationId = searchParams.get("donationId");
+  const initialView = searchParams.get("view");
 
   const {
     isHydrated,
@@ -48,7 +51,9 @@ function MatchesContent() {
   const [showWeightSliders, setShowWeightSliders] = useState(false);
   const [reservationSuccess, setReservationSuccess] = useState(false);
   const [isReserving, setIsReserving] = useState(false);
-  const [matchViewMode, setMatchViewMode] = useState<"ranking" | "benchmark">("ranking");
+  const [matchViewMode, setMatchViewMode] = useState<"ranking" | "benchmark" | "digital_twin">(
+    initialView === "digital_twin" ? "digital_twin" : initialView === "benchmark" ? "benchmark" : "ranking"
+  );
 
   useEffect(() => {
     if (storedWeights) {
@@ -457,9 +462,9 @@ function MatchesContent() {
           </div>
         )}
 
-        {/* View Mode Toggle: Plan & Ranking vs Benchmark */}
+        {/* View Mode Toggle: Plan & Ranking vs Benchmark vs Digital Twin */}
         {matchResult && selectedDonation && (
-          <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
+          <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 pb-2">
             <button
               onClick={() => setMatchViewMode("ranking")}
               className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition ${
@@ -482,12 +487,32 @@ function MatchesContent() {
               <Scale className="w-3.5 h-3.5 text-emerald" />
               RelayMatch vs. FCFS Benchmark
             </button>
+            <button
+              onClick={() => setMatchViewMode("digital_twin")}
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition ${
+                matchViewMode === "digital_twin"
+                  ? "bg-forest text-white shadow-subtle"
+                  : "bg-white text-charcoal hover:bg-cream border border-gray-200"
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5 text-mint" />
+              Rescue Digital Twin (Scenario Analysis)
+            </button>
           </div>
         )}
 
         {/* Benchmark Mode */}
         {matchViewMode === "benchmark" && selectedDonation && (
           <MatchingBenchmarkUI
+            donation={selectedDonation}
+            recipients={recipients}
+            weights={weights}
+          />
+        )}
+
+        {/* Rescue Digital Twin Mode */}
+        {matchViewMode === "digital_twin" && selectedDonation && (
+          <RescueDigitalTwinUI
             donation={selectedDonation}
             recipients={recipients}
             weights={weights}

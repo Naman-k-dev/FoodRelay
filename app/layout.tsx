@@ -6,7 +6,9 @@ export const metadata: Metadata = {
   description:
     "AI-assisted surplus food rescue and redistribution coordination platform for PromptWars × Echo Engineers hackathon.",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
   },
 };
 

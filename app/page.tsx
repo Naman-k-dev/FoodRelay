@@ -81,7 +81,7 @@ export default function LandingPage() {
               className="hidden sm:inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold text-forest bg-mint hover:bg-mint-dark rounded-xl transition border border-emerald/30 shadow-subtle"
             >
               <Sparkles className="w-3.5 h-3.5 text-emerald" />
-              Launch Interactive Demo
+              Experience FoodRelay — 2 Minute Demo
             </Link>
             <Link
               href="/donate"
@@ -130,7 +130,7 @@ export default function LandingPage() {
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-bold rounded-xl text-forest bg-mint hover:bg-mint-dark border border-emerald/30 shadow-subtle transition"
               >
                 <Sparkles className="w-4 h-4 text-emerald" />
-                Launch Interactive Demo
+                Experience FoodRelay — 2 Minute Demo
               </Link>
             </div>
 

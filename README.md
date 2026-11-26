@@ -3,13 +3,14 @@
 > **Rescue food. Redirect hope.**  
 > *AI-Assisted Surplus Food Rescue and Redistribution Coordination Platform*  
 > Built for the **PromptWars × Echo Engineers Hackathon** (Hack2Skill submission)  
-> Repository: `https://github.com/Naman-k-dev/FoodRelay` · Branch: `main`
+> Repository: `https://github.com/Naman-k-dev/FoodRelay` · Branch: `main` ONLY  
+> Architecture: Next.js 15 App Router · TypeScript · Tailwind CSS · @google/genai
 
 ---
 
 ## 1. Executive Summary & Problem Statement
 
-Commercial kitchens, wedding venues, university mess halls, and corporate cafeterias across urban India prepare millions of meals daily. Unpredictable guest turnouts routinely generate clean, high-quality cooked surplus food. Simultaneously, community shelters, night refuges, and orphanages just kilometers away struggle with meal shortages.
+Commercial kitchens, wedding banquets, university mess halls, and corporate cafeterias across urban India prepare millions of meals daily. Unpredictable guest turnouts routinely generate clean, high-quality cooked surplus food. Simultaneously, community shelters, night refuges, and orphanages just kilometers away struggle with daily meal shortages.
 
 Traditional food donation channels fail because:
 1. **Unstructured Communication**: Donor messages sent via WhatsApp, calls, or voice notes are incomplete, ambiguous, and unstandardized.
@@ -33,23 +34,23 @@ Traditional food donation channels fail because:
 - **AI Impact Intelligence (`/api/impact-insights`)**: Analyzes real-time rescue metrics to identify demand hotspots, bottleneck hours, and fleet recommendations.
 - **AI Communication Drafter (`/api/draft-message`)**: Generates bilingual (English/Hindi) donor receipts, driver dispatch alerts, and recipient ETA notifications with 1-click clipboard copying.
 
-### C. Explainable, Constraint-Aware RelayMatch Engine
+### C. Signature Feature: Food Rescue Digital Twin
+- **Operational Planning Sandbox**: An interactive scenario analysis tool allowing coordinators to simulate shocks before committing food.
+- **Dynamic Shocks**: Adjust available surplus (-50% to +100%), scale network receiving capacity, inject emergency shelters (+50 or +100 portions), and simulate shelter disruptions (taking specific recipients offline).
+- **Zero Record Mutation**: Operates on an isolated clone of active state; real stored records remain 100% untouched.
+- **Real-Time Algorithmic Re-routing**: Re-executes the actual RelayMatch engine on every slider shift, showing real-time allocation flow charts, delta ledgers, and AI operational assessments.
+
+### D. Explainable, Constraint-Aware RelayMatch Engine
 - **Zero black-box allocation**: AI extracts facts, but deterministic algorithms calculate allocations.
 - **Stage-based pipeline**: Hard constraint filtering (dietary, allergens, capacity, storage) $\rightarrow$ Haversine geodesic distance $\rightarrow$ Configurable 4-part weighted scoring (Urgency 40%, Proximity 30%, Demand 20%, Readiness 10%) $\rightarrow$ Multi-recipient portion distribution with stable tie-breaking.
 
-### D. Deterministic Food Safety Gate (FSSAI 2019)
-- Aligned directly with the Indian Food Safety and Standards (Recovery and Distribution of Surplus Food) Regulations, 2019.
+### E. Deterministic Food Safety Gate (FSSAI 2019)
+- Aligned directly with the Indian *Food Safety and Standards (Recovery and Distribution of Surplus Food) Regulations, 2019*.
 - Enforces time elapsed, use-by limits, sealed packaging rules, and mandatory human-in-the-loop coordinator approval before food becomes allocatable.
 
-### E. Traceable Dispatch Pipeline & Digital Handover
+### F. Traceable Dispatch Pipeline & Digital Handover
 - Guarded state machine: `Proposed` $\rightarrow$ `Reserved` $\rightarrow$ `Accepted` $\rightarrow$ `Ready for Pickup` $\rightarrow$ `Collected` $\rightarrow$ `Delivered`.
 - Generates verifiable digital handover receipts with printable QR codes containing non-sensitive audit references.
-
-### F. Dedicated Interactive Judge Demonstration (`/demo`)
-- **Greenfield College Canteen Scenario (180 portions)**: Demonstrates split distribution across 3 eligible shelters (80, 60, and 40 portions) alongside ineligible shelter handling.
-- **Capacity Bottleneck Scenario (250 portions)**: Demonstrates remaining unallocated balance handling when network capacity is exceeded.
-- **Dual-Mode Engine**: Instant toggle between **Live Gemini 3.5 AI** and **Offline Demonstration Mode**.
-- **10-Step Guided Progress Bar**: Step-by-step evaluator journey with live state transitions and impact reveal.
 
 ---
 
@@ -63,7 +64,7 @@ flowchart TD
         A3[Voice Recording] --> B
         B --> C{Gemini Configured?}
         B2 --> C
-        C -->|Yes| D[@google/genai SDK<br/>gemini-3.5-flash-lite]
+        C -->|Yes| D[@google/genai SDK<br/>gemini-2.5-flash / gemini-3.5-flash-lite]
         C -->|No / Quota Fail| E[Deterministic Rule-Based<br/>Multilingual Fallback]
         D --> F[Strict Extracted Draft<br/>with Evidence Excerpts]
         E --> F
@@ -77,11 +78,12 @@ flowchart TD
         J --> K[Status: Eligible for Matching]
     end
 
-    subgraph Matching["3. RelayMatch Allocation Engine"]
+    subgraph Matching["3. RelayMatch Allocation Engine & Digital Twin"]
         K --> L[Stage A: Hard Constraints Filter<br/>Dietary, Allergens, Storage, Demand]
         L --> M[Stage B: Haversine Geodesic Distance]
         M --> N[Stage C: 4-Factor Weighted Ranking<br/>Urgency 40% + Proximity 30% + Demand 20% + Readiness 10%]
         N --> O[Stage D: Portion Balance Allocation<br/>Split Distributions across Top Shelters]
+        O <--> DT[Rescue Digital Twin<br/>Operational Scenario Sandbox]
     end
 
     subgraph Dispatch["4. Traceable Dispatch & Impact"]
@@ -95,33 +97,47 @@ flowchart TD
 
 ---
 
-## 4. RelayMatch Scoring & Allocation Formulas
+## 4. AI Transparency Center: Responsibility Matrix
+
+| Dimension | WHAT AI DOES (Probabilistic) | WHAT DETERMINISTIC CODE DOES | WHAT HUMANS CONTROL (Authority) |
+|---|---|---|---|
+| **Intake & Scanning** | Extracts facts from natural language; analyzes visible food photo containers. | Validates quantity formats & enforces positive integers via Zod. | Confirms extracted data before entering queue. |
+| **Safety Governance** | Identifies potential ambiguities and missing handling records. | Evaluates FSSAI 2019 rules (time elapsed, use-by limits, tamper-evident seals). | **Physical safety inspection, temperature check & coordinator sign-off.** |
+| **Allocation & Ranking** | Summarizes operational records and explains scenario impacts. | Computes Haversine distances, applies multi-factor weights, balances portions. | **Approves or adjusts the allocation plan.** |
+| **Dispatch & Handover** | Drafts bilingual dispatch updates & arrival notices for drivers and NGOs. | Enforces linear state transitions; guards against double-allocations; issues QR vouchers. | **Supervisors accept delivery; drivers confirm vehicle transit; recipient signs receipt.** |
+
+> [!IMPORTANT]  
+> **Non-Negotiable Food Safety Boundary**: Computer vision and large language models CANNOT certify food safety, detect microbial loads, assess unseen spoilage, or verify internal cooking temperatures. Visual analysis and AI smart review are strictly operational aids—physical inspection and temperature monitoring remain mandatory under Indian law.
+
+---
+
+## 5. RelayMatch Scoring & Benchmark Methodology
 
 ### Distance Computation
-Estimated straight-line distance is computed via the spherical Haversine formula:
+Straight-line distance is computed via the spherical Haversine formula:
 $$\Delta\sigma = 2 \cdot \text{atan2}\left(\sqrt{a}, \sqrt{1-a}\right)$$
 $$\text{Distance (km)} = R \cdot \Delta\sigma \quad (R = 6371\text{ km})$$
 
 ### Weighted Score Breakdown (0 to 100)
-1. **Urgency Score ($S_{\text{urgency}}$)**:
-   - Critical: 100
-   - High: 75
-   - Moderate: 50
-   - Low: 25
+1. **Urgency Score ($S_{\text{urgency}}$)**: Critical: 100, High: 75, Moderate: 50, Low: 25
 2. **Proximity Score ($S_{\text{proximity}}$)**:
    $$S_{\text{proximity}} = \max\left(0, 100 - \left(\frac{\text{Distance (km)}}{30\text{ km}}\right) \times 100\right)$$
 3. **Demand Fit Score ($S_{\text{demand}}$)**:
    $$S_{\text{demand}} = \min\left(100, \text{round}\left(\frac{\text{Recipient Remaining Demand}}{\text{Donation Quantity}} \times 100\right)\right)$$
-4. **Readiness Score ($S_{\text{readiness}}$)**:
-   Evaluated from recipient transport capability (`self_pickup` = 80, `flexible` = 70, `delivery_only` = 50) and verification status.
+4. **Readiness Score ($S_{\text{readiness}}$)**: Evaluated from transport capability and verification status.
 
-### Normalized Composite Score:
-$$\text{Score} = \frac{w_u \cdot S_{\text{urgency}} + w_p \cdot S_{\text{proximity}} + w_d \cdot S_{\text{demand}} + w_r \cdot S_{\text{readiness}}}{w_u + w_p + w_d + w_r}$$
-*(Default Weights: $w_u = 40, w_p = 30, w_d = 20, w_r = 10$)*
+$$\text{Composite Score} = \frac{40 \cdot S_{\text{urgency}} + 30 \cdot S_{\text{proximity}} + 20 \cdot S_{\text{demand}} + 10 \cdot S_{\text{readiness}}}{100}$$
+
+### 4 Reproducible Standard Benchmark Scenarios
+In the Match Center (`/matches`), coordinators can compare RelayMatch against First-Come-First-Served (FCFS) across 4 reproducible scenarios with downloadable audit reports (JSON and CSV):
+1. **Scenario 1: Balanced Supply & Demand**: 180 portions offered against 180 capacity. Verified property: Zero over-allocation (180 allocated, 0 unallocated).
+2. **Scenario 2: Insufficient Capacity Bottleneck**: 250 portions offered against 120 capacity. Verified property: Allocates exactly 120 portions, reporting precisely 130 unallocated portions.
+3. **Scenario 3: Recipient Disruption**: Primary critical shelter abruptly goes offline. Verified property: RelayMatch safely skips the unavailable shelter and rebalances all food across active recipients.
+4. **Scenario 4: FSSAI Safety Blocker**: Food stored loose in open pans. Verified property: Safety Gate halts 100% of portions (0 allocated) across both algorithms.
 
 ---
 
-## 5. Technology Stack
+## 6. Technology Stack
 
 - **Framework**: Next.js 15 (App Router, React 19)
 - **Language**: TypeScript with strict mode enabled
@@ -129,7 +145,7 @@ $$\text{Score} = \frac{w_u \cdot S_{\text{urgency}} + w_p \cdot S_{\text{proximi
 - **Icons**: Lucide React
 - **Data Visualization**: Recharts (bar charts, status distributions, trend lines)
 - **Mapping**: Leaflet & OpenStreetMap (client-only dynamic loading with schematic fallback)
-- **AI Integration**: Official `@google/genai` SDK (`gemini-3.5-flash-lite` with automatic model cascade)
+- **AI Integration**: Official `@google/genai` SDK with automatic model cascade (`gemini-2.5-flash`, `gemini-3.5-flash-lite`, `gemini-3.5-flash`)
 - **Schema Validation**: Zod
 - **Persistence**: Typed versioned repository backed by LocalStorage with hydration protection
 - **QR Code Generation**: `qrcode` library
@@ -137,22 +153,22 @@ $$\text{Score} = \frac{w_u \cdot S_{\text{urgency}} + w_p \cdot S_{\text{proximi
 
 ---
 
-## 6. Project Structure
+## 7. Project Structure
 
 ```
 ├── app/
-│   ├── layout.tsx                 # Root layout with fonts, metadata, and Leaflet styles
+│   ├── layout.tsx                 # Root layout with custom SVG favicon and Leaflet styles
 │   ├── page.tsx                   # High-converting landing page with visual workflow
 │   ├── dashboard/page.tsx         # Operations dashboard, KPIs, urgent review queue
-│   ├── demo/page.tsx              # Interactive Judge Demo (10-step guided rescue journey)
+│   ├── demo/page.tsx              # Guided 8-step evaluator journey with Digital Twin
 │   ├── donate/page.tsx            # AI Smart Intake (Text, Multimodal Scanner, Voice)
 │   ├── donations/page.tsx         # Donations listing & simulated safety review gate
 │   ├── recipients/page.tsx        # Recipient network management & capacity filters
-│   ├── matches/page.tsx           # RelayMatch center, weight tuning & score cards
+│   ├── matches/page.tsx           # RelayMatch center, Digital Twin & Benchmark tabs
 │   ├── map/page.tsx               # Leaflet geographic map & schematic network view
 │   ├── dispatch/page.tsx          # Dispatch Kanban board, transitions & QR receipt
 │   ├── impact/page.tsx            # Impact analytics, AI intelligence, CSV/JSON export
-│   ├── about/page.tsx             # FSSAI 2019 compliance & Responsible AI disclosures
+│   ├── about/page.tsx             # AI Transparency Center & FSSAI compliance
 │   └── api/
 │       ├── intake/route.ts        # Server-side Gemini multilingual intake
 │       ├── scanner/route.ts       # Server-side Multimodal food image scanner
@@ -168,42 +184,39 @@ $$\text{Score} = \frac{w_u \cdot S_{\text{urgency}} + w_p \cdot S_{\text{proximi
 │   │   ├── RelayCopilotDrawer.tsx # Grounded conversational assistant drawer
 │   │   ├── ImpactInsightsCard.tsx # AI strategic recommendations card
 │   │   └── CommunicationDraftModal.tsx # Bilingual message drafter modal
+│   ├── matching/
+│   │   ├── MatchingBenchmarkUI.tsx# Benchmark UI with 4 standard reproducible scenarios
+│   │   └── RescueDigitalTwinUI.tsx# Digital Twin interactive scenario sandbox
 │   ├── layout/AppShell.tsx        # Reusable desktop sidebar & mobile drawer shell
-│   ├── ui/Logo.tsx                # Custom lightweight FoodRelay SVG logo
-│   └── maps/RescueMap.tsx         # Leaflet map with OpenStreetMap tiles & polylines
+│   └── ui/Logo.tsx                # Custom lightweight FoodRelay SVG logo
 ├── lib/
 │   ├── ai/
 │   │   ├── geminiClient.ts        # Centralized server-side Gemini client with timeout
 │   │   ├── geminiExtractor.ts     # Multilingual structured extraction
 │   │   └── fallbackExtractor.ts   # Deterministic multilingual rule-based parser
-│   ├── analytics/metrics.ts       # Real-time metric ledger & double-counting guards
-│   ├── demo/seedData.ts           # Fictional Noida/Greater Noida demo generator
-│   ├── dispatch/transitions.ts    # State machine guards & transition validations
 │   ├── matching/
+│   │   ├── benchmarkScenarios.ts  # 4 standardized hackathon benchmark scenarios
+│   │   ├── benchmark.ts           # Strategy benchmark logic (RelayMatch vs FCFS)
 │   │   ├── distance.ts            # Haversine geodesic distance calculation
 │   │   └── relayMatch.ts          # Pure deterministic allocation engine
 │   ├── safety/safetyGate.ts       # FSSAI 2019 compliance validator
-│   ├── schemas/                   # Zod schemas for donations, recipients, and AI endpoints
-│   └── storage/
-│       ├── repository.ts          # Versioned local repository abstraction
-│       └── useFoodRelay.ts        # Reactive client-safe React state hook
+│   └── storage/repository.ts      # Versioned local repository abstraction
 ├── tests/
 │   ├── analytics.test.ts          # Metric computation & zero double-counting tests
 │   ├── benchmark.test.ts          # Strategy benchmark tests
+│   ├── digital_twin_and_benchmarks.test.ts # Digital twin & 4 benchmark scenarios
 │   ├── dispatch.test.ts           # State transition & QR receipt generation tests
 │   ├── intake.test.ts             # Multilingual intake & Zod parsing tests
 │   ├── matching.test.ts           # RelayMatch allocation & split portion tests
 │   ├── phase4_ai_schemas.test.ts  # Phase 4 AI schemas & safety disclaimer tests
 │   └── safety.test.ts             # Food safety gate & expiration tests
-├── types/index.ts                 # Strict TypeScript domain interfaces
-├── vitest.config.ts               # Vitest test runner configuration
 ├── package.json
 └── README.md
 ```
 
 ---
 
-## 7. Installation & Local Development
+## 8. Installation & Local Development
 
 ### Prerequisites
 - Node.js `v20+` or `v24+`
@@ -218,7 +231,7 @@ cd FoodRelay
 # 2. Install dependencies
 npm install
 
-# 3. Configure environment variables (optional - offline fallback active)
+# 3. Configure environment variables (optional — offline fallback active)
 cp .env.example .env.local
 # Edit .env.local and insert your GEMINI_API_KEY
 
@@ -235,21 +248,21 @@ The application will be accessible at `http://localhost:3000`.
 
 ---
 
-## 8. Environment Variables
+## 9. Environment Variables
 
 | Variable | Description | Required | Default |
 |---|---|---|---|
 | `GEMINI_API_KEY` | Google Gemini API key (kept strictly server-side) | No (Fallback active) | `""` |
-| `GEMINI_MODEL` | Google GenAI model identifier | No | `gemini-3.5-flash-lite` |
+| `GEMINI_MODEL` | Google GenAI model identifier | No | `gemini-2.5-flash` |
 | `AI_ENABLED` | Toggle live AI service on or off | No | `true` |
-| `AI_REQUEST_TIMEOUT_MS` | Server-side API request timeout in milliseconds | No | `12000` |
+| `AI_REQUEST_TIMEOUT_MS` | Server-side API request timeout in milliseconds | No | `15000` |
 
 > [!NOTE]  
 > If `GEMINI_API_KEY` is not provided or quota is exhausted, FoodRelay automatically engages its built-in multilingual rule-based extractor and deterministic fallbacks. The application operates with 100% functionality in offline mode.
 
 ---
 
-## 9. Automated Test Verification
+## 10. Automated Test Verification
 
 All automated unit tests pass with zero errors:
 
@@ -259,66 +272,50 @@ $ npm test
  RUN  v3.2.7
 
  ✓ tests/analytics.test.ts (1 test)
- ✓ tests/dispatch.test.ts (4 tests)
  ✓ tests/safety.test.ts (8 tests)
+ ✓ tests/dispatch.test.ts (4 tests)
  ✓ tests/matching.test.ts (8 tests)
  ✓ tests/benchmark.test.ts (4 tests)
+ ✓ tests/digital_twin_and_benchmarks.test.ts (5 tests)
  ✓ tests/phase4_ai_schemas.test.ts (5 tests)
  ✓ tests/intake.test.ts (4 tests)
 
- Test Files  7 passed (7)
-      Tests  34 passed (34)
-   Duration  232ms
+ Test Files  8 passed (8)
+      Tests  39 passed (39)
+   Duration  302ms
 ```
 
-### Verified Test Scenarios:
-- **Valid allocation**: Correct portions assigned to eligible recipients.
-- **Capacity constraints**: Never exceeds recipient available capacity or remaining donation quantity.
-- **Split allocations**: High-volume batches divided across multiple nearby recipients.
-- **Unit blocker**: Quantities in `kg` or boxes held until portion conversion is confirmed.
-- **Safety Gate**: Enforces use-by expiration, loose packaging blocks, coordinate validation, and coordinator approvals.
-- **Dietary & Allergen constraints**: Strict mismatch filtering (e.g., non-veg to vegetarian shelters, dairy allergen restrictions).
-- **Dispatch state machine**: Linear transitions enforced (`Reserved` $\rightarrow$ `Delivered`); invalid jumps blocked.
-- **Ledger math**: `Delivered + Reserved + Unallocated = Total Donated Portions` (zero double-counting).
-- **Multilingual extraction**: Accurately parses English, Hindi, and Hinglish donation messages into Zod drafts.
-- **Phase 4 AI Contracts**: Validates multimodal scanner schemas, advisory smart review findings, grounded copilot references, and safety disclaimers.
+---
+
+## 11. Guided Judge Demonstration (`/demo`)
+
+Evaluators can execute the guided **2-Minute Demo**:
+1. Click **"Experience FoodRelay — 2 Minute Demo"** on the landing page header.
+2. **Step 1: The Problem**: Greenfield College Canteen has 180 surplus vegetarian meal portions.
+3. **Step 2: AI Intake**: Run live Gemini extraction or offline sample. Inspect evidence excerpts and missing fields.
+4. **Step 3: Responsible AI**: Verify that missing temperature records halt matching; perform simulated FSSAI 2019 coordinator sign-off.
+5. **Step 4: Intelligent Matching**: Execute RelayMatch. Inspect 0–100 scores and excluded recipients.
+6. **Step 5: Visual Food Flow**: Observe portion allocation split (80 portions to Shelter A, 60 portions to Shelter B, 40 portions to Shelter C).
+7. **Step 6: Rescue Digital Twin**: Simulate operational disruption by toggling a shelter offline; watch allocations re-balance instantly, then restore the scenario.
+8. **Step 7: Confirm & Dispatch**: Progress through audited transitions (`Reserved` $\rightarrow$ `Accepted` $\rightarrow$ `Collected` $\rightarrow$ `Delivered`) and preview the digital QR receipt.
+9. **Step 8: Impact Reveal**: Review final metrics (+180 meals, 450 kg CO2e diverted, 0 unallocated waste).
 
 ---
 
-## 10. Interactive Judge Demonstration (`/demo`)
+## 12. Vercel Deployment Instructions
 
-Judges can test the complete end-to-end workflow in under 2 minutes:
-
-1. **Open `/demo`**: Click **Launch Interactive Demo** from the top header or navigation.
-2. **Scenario Selection**: Choose between **Greenfield College Canteen (180 portions)** or **Conference Buffet Capacity Bottleneck (250 portions)**.
-3. **Toggle AI Engine**: Switch between **Live Gemini 3.5 AI** and **Offline Demonstration Mode** with one click.
-4. **Step 1: Intake & Parse**: Inspect multilingual extraction from Greenfield College Canteen.
-5. **Step 2: Safety Audit**: Verify FSSAI 2019 compliance check (tamper packaging, temperature compliance).
-6. **Step 3: Hard Constraints Filter**: Inspect why ineligible shelters (dairy allergy restriction, capacity full) are eliminated.
-7. **Step 4: RelayMatch Multi-Factor Scoring**: Observe 0-100 score breakdown across Urgency, Proximity, Demand, and Readiness.
-8. **Step 5: Split Portion Distribution**: View exact split: 80 portions to Shelter A (2.3 km), 60 portions to Shelter B (3.8 km), 40 portions to Shelter C (4.1 km).
-9. **Step 6: Reserve & Lock**: Lock the allocation plan, updating live recipient capacities.
-10. **Step 7: Traceable Dispatch**: Advance through the dispatch pipeline and generate the digital handover receipt with QR code.
-11. **Step 8: Impact Reveal**: Inspect dynamic metrics: +180 portions rescued, 450 kg CO2e diverted, 100% zero food waste achieved.
+FoodRelay is 100% Vercel-compatible:
+1. Push to GitHub (`main` branch only).
+2. Import project into Vercel Dashboard.
+3. Configure Environment Variables in Vercel Project Settings:
+   - `GEMINI_API_KEY`: Your Google AI Studio API key
+   - `GEMINI_MODEL`: `gemini-2.5-flash`
+   - `AI_ENABLED`: `true`
+4. Click **Deploy**. Build completes in under 2.5 minutes.
 
 ---
 
-## 11. Current Prototype Scope & Production Roadmap
-
-### Prototype Scope
-- **Storage**: Uses versioned browser LocalStorage with automatic schema recovery and user-data preservation.
-- **Data**: Fictional demonstration organizations localized to Noida and Greater Noida (UP).
-- **Single-Tenant**: Designed for evaluation, live judge presentation, and zero-setup deployment on Vercel.
-
-### Production Roadmap
-- [ ] **Multi-Tenant Cloud DB**: PostgreSQL + Supabase with Row-Level Security for segregated donor/NGO logins.
-- [ ] **IoT Cold-Chain Telemetry**: Bluetooth/Cellular temperature sensors logging transit cambro temperatures directly to the handover record.
-- [ ] **FSSAI FoSCoS API**: Automated donor FSSAI license verification against the official portal.
-- [ ] **SMS/WhatsApp Driver Routing**: Driver turn-by-turn navigation links pushed via Twilio/Gupshup.
-
----
-
-## 12. PromptWars Presentation Pitch
+## 13. Presentation Pitch
 
 > *"Every day, delicious, fresh food from banquets and canteens is discarded simply because coordinators lack the 15 minutes required to call five different shelters and verify food safety. FoodRelay AI solves this coordination breakdown: an event manager texts a 20-word Hindi or English message, Gemini structures the rescue batch, our FSSAI safety gate validates the time window, and our transparent RelayMatch algorithm assigns the meal to the closest shelter in need within seconds. No black box, no waste, 100% accountable."*
 

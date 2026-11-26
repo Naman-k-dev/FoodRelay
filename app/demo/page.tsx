@@ -4,113 +4,101 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { runRelayMatch, DEFAULT_WEIGHTS } from "@/lib/matching/relayMatch";
-import { runMatchingBenchmark } from "@/lib/matching/benchmark";
-import { MatchingBenchmarkUI } from "@/components/matching/MatchingBenchmarkUI";
-import { Donation, Recipient, Allocation } from "@/types";
+import { Donation, Recipient, MatchResult } from "@/types";
 import {
   Sparkles,
-  ArrowRight,
+  ShieldCheck,
+  Building,
   CheckCircle2,
-  AlertTriangle,
+  Clock,
+  ArrowRight,
+  TrendingUp,
+  RotateCcw,
   Scale,
   Truck,
-  ShieldCheck,
+  QrCode,
+  AlertTriangle,
+  Layers,
   ChevronRight,
   ChevronLeft,
-  RotateCcw,
-  QrCode,
-  Building,
-  Layers,
-  Clock,
-  Cpu,
-  Bot,
+  Sliders,
+  Activity,
+  FileText,
+  HeartHandshake,
 } from "lucide-react";
 
 // Demo Scenarios Setup with Fresh Relative Timestamps
 function createDemoScenarios(now: Date = new Date()) {
-  const prepTime = new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString();
-  const pickupStart = now.toISOString();
-  const pickupEnd = new Date(now.getTime() + 2.5 * 60 * 60 * 1000).toISOString();
-  const useBy = new Date(now.getTime() + 4 * 60 * 60 * 1000).toISOString();
+  const plusHours = (h: number) => new Date(now.getTime() + h * 3600 * 1000).toISOString();
+  const minusHours = (h: number) => new Date(now.getTime() - h * 3600 * 1000).toISOString();
 
-  // Scenario 1: Greenfield College Canteen (180 portions)
   const donation1: Donation = {
     id: "demo-don-greenfield",
     donorName: "Greenfield College Canteen",
     donorType: "hostel",
-    foodDescription: "Fresh vegetable biryani, dal makhani, and roti meals",
+    donorContact: "Manoj Kumar (Mess Manager)",
+    foodDescription: "Fresh vegetable biryani, dal makhani, and roti portions prepared for campus seminar.",
     foodCategory: "cooked_meals",
     dietaryCategory: "vegetarian",
     quantity: 180,
     unit: "portions",
     remainingQuantity: 180,
+    preparedAt: minusHours(2),
     pickupLocation: "Sector 62, Noida (Demonstration Campus)",
     latitude: 28.628,
-    longitude: 77.367,
-    preparedAt: prepTime,
-    pickupWindowStart: pickupStart,
-    pickupWindowEnd: pickupEnd,
-    confirmedUseBy: useBy,
+    longitude: 77.365,
+    pickupWindowStart: minusHours(1),
+    pickupWindowEnd: plusHours(3),
+    confirmedUseBy: plusHours(4),
     storageMethod: "heated",
     packagingCondition: "sealed_containers",
     allergenInformation: ["dairy"],
-    handlingInformation: "Maintained above 60°C in food-grade insulated cambro containers.",
+    handlingInformation: "Maintained above 60°C in thermal insulated transport containers.",
     sourceVerificationStatus: "verified_license",
     safetyReviewStatus: "awaiting_human_review",
-    safetyReviewNotes: "Awaiting coordinator verification of packaging seals.",
+    safetyReviewNotes: "Tamper tape intact. Temperature check required before matching.",
     safetyReviewer: null,
     safetyReviewedAt: null,
     status: "awaiting_review",
-    createdAt: now.toISOString(),
-    updatedAt: now.toISOString(),
+    createdAt: minusHours(2),
+    updatedAt: minusHours(1),
     isDemo: true,
     history: [],
   };
 
-  // Scenario 2: High Surplus with Limited Capacity (250 portions)
-  const donation2: Donation = {
-    ...donation1,
-    id: "demo-don-conference",
-    donorName: "Apex Expo Conference Hall",
-    foodDescription: "Surplus conference buffet vegetarian meals",
-    quantity: 250,
-    remainingQuantity: 250,
-  };
-
-  // Fictional Demonstration Recipients
   const recipients: Recipient[] = [
     {
       id: "demo-rec-a",
-      organizationName: "Community Kitchen A (Pragati Seva)",
-      organizationType: "community_kitchen",
+      organizationName: "Aasra Community Shelter",
+      organizationType: "shelter",
       contactPerson: "Rajesh Sharma",
       phone: "+91-98111-10001",
-      location: "Sector 63, Noida (1.8 km)",
-      latitude: 28.632,
-      longitude: 77.382,
+      location: "Sector 59, Noida (2.3 km)",
+      latitude: 28.618,
+      longitude: 77.375,
       requestedMealPortions: 80,
       remainingDemand: 80,
       receivingCapacity: 80,
       availableCapacity: 80,
       urgencyLevel: "critical",
-      acceptedDietaryCategories: ["vegetarian"],
+      acceptedDietaryCategories: ["vegetarian", "vegan"],
       allergenRestrictions: [],
-      storageCapabilities: ["heated", "ambient"],
+      storageCapabilities: ["heated", "ambient", "refrigerated"],
       transportAvailability: "self_pickup",
-      receivingWindowStart: prepTime,
-      receivingWindowEnd: useBy,
+      receivingWindowStart: minusHours(1),
+      receivingWindowEnd: plusHours(6),
       verificationStatus: "simulated_verified",
       isDemo: true,
     },
     {
       id: "demo-rec-b",
-      organizationName: "Hope Shelter B (Bal Sahyog)",
-      organizationType: "shelter",
-      contactPerson: "Priya Nair",
+      organizationName: "Prerna Child Care Orphanage",
+      organizationType: "orphanage",
+      contactPerson: "Sunita Verma",
       phone: "+91-98111-10002",
-      location: "Sector 59, Noida (3.2 km)",
-      latitude: 28.614,
-      longitude: 77.361,
+      location: "Sector 63, Noida (3.8 km)",
+      latitude: 28.632,
+      longitude: 77.391,
       requestedMealPortions: 60,
       remainingDemand: 60,
       receivingCapacity: 60,
@@ -119,9 +107,9 @@ function createDemoScenarios(now: Date = new Date()) {
       acceptedDietaryCategories: ["vegetarian"],
       allergenRestrictions: [],
       storageCapabilities: ["heated", "ambient"],
-      transportAvailability: "self_pickup",
-      receivingWindowStart: prepTime,
-      receivingWindowEnd: useBy,
+      transportAvailability: "flexible",
+      receivingWindowStart: minusHours(1),
+      receivingWindowEnd: plusHours(5),
       verificationStatus: "simulated_verified",
       isDemo: true,
     },
@@ -139,25 +127,24 @@ function createDemoScenarios(now: Date = new Date()) {
       receivingCapacity: 40,
       availableCapacity: 40,
       urgencyLevel: "moderate",
-      acceptedDietaryCategories: ["vegetarian"],
+      acceptedDietaryCategories: ["vegetarian", "non_vegetarian"],
       allergenRestrictions: [],
       storageCapabilities: ["heated", "ambient"],
       transportAvailability: "self_pickup",
-      receivingWindowStart: prepTime,
-      receivingWindowEnd: useBy,
+      receivingWindowStart: minusHours(1),
+      receivingWindowEnd: plusHours(5),
       verificationStatus: "simulated_verified",
       isDemo: true,
     },
-    // Ineligible 1: Zero Remaining Capacity
     {
       id: "demo-rec-inelig-1",
-      organizationName: "Full House Shelter (Zero Open Slots)",
-      organizationType: "shelter",
+      organizationName: "Seva Niketan Relief (Full Capacity)",
+      organizationType: "community_kitchen",
       contactPerson: "Anil Gupta",
       phone: "+91-98111-10004",
-      location: "Sector 18, Noida (6.5 km)",
-      latitude: 28.57,
-      longitude: 77.32,
+      location: "Sector 62, Noida (1.2 km)",
+      latitude: 28.625,
+      longitude: 77.368,
       requestedMealPortions: 50,
       remainingDemand: 0,
       receivingCapacity: 50,
@@ -167,46 +154,44 @@ function createDemoScenarios(now: Date = new Date()) {
       allergenRestrictions: [],
       storageCapabilities: ["heated"],
       transportAvailability: "self_pickup",
-      receivingWindowStart: prepTime,
-      receivingWindowEnd: useBy,
+      receivingWindowStart: minusHours(1),
+      receivingWindowEnd: plusHours(5),
       verificationStatus: "simulated_verified",
       isDemo: true,
     },
-    // Ineligible 2: Dietary Incompatibility
     {
       id: "demo-rec-inelig-2",
-      organizationName: "Seva Non-Veg Canteen (Diet Mismatch)",
-      organizationType: "community_kitchen",
-      contactPerson: "Gurpreet Singh",
+      organizationName: "Navjeevan Hostel (Dairy Restriction)",
+      organizationType: "shelter",
+      contactPerson: "Kavita Rao",
       phone: "+91-98111-10005",
-      location: "Indirapuram (8.2 km)",
-      latitude: 28.64,
-      longitude: 77.38,
-      requestedMealPortions: 60,
-      remainingDemand: 60,
-      receivingCapacity: 60,
-      availableCapacity: 60,
-      urgencyLevel: "critical",
-      acceptedDietaryCategories: ["non_vegetarian"], // Mismatch with vegetarian donation
-      allergenRestrictions: [],
+      location: "Sector 58, Noida (2.9 km)",
+      latitude: 28.61,
+      longitude: 77.36,
+      requestedMealPortions: 50,
+      remainingDemand: 50,
+      receivingCapacity: 50,
+      availableCapacity: 50,
+      urgencyLevel: "moderate",
+      acceptedDietaryCategories: ["vegetarian"],
+      allergenRestrictions: ["dairy"],
       storageCapabilities: ["heated"],
       transportAvailability: "self_pickup",
-      receivingWindowStart: prepTime,
-      receivingWindowEnd: useBy,
+      receivingWindowStart: minusHours(1),
+      receivingWindowEnd: plusHours(5),
       verificationStatus: "simulated_verified",
       isDemo: true,
     },
   ];
 
-  return { donation1, donation2, recipients };
+  return { donation1, recipients };
 }
 
 export default function InteractiveDemoPage() {
   const [now] = useState(() => new Date());
   const initialData = useMemo(() => createDemoScenarios(now), [now]);
 
-  // Mode & Scenario Selection
-  const [scenarioId, setScenarioId] = useState<"scenario1" | "scenario2">("scenario1");
+  // Mode Selection
   const [aiMode, setAiMode] = useState<"live" | "offline">("live");
   const [activeStep, setActiveStep] = useState<number>(1);
 
@@ -222,32 +207,45 @@ export default function InteractiveDemoPage() {
   >("reserved");
   const [initialDeliveredCount] = useState<number>(1420);
 
+  // Step 6 Digital Twin Disruption State
+  const [digitalTwinExcludedId, setDigitalTwinExcludedId] = useState<string | null>(null);
+
   // Reset Demo State
   const handleReset = () => {
     const fresh = createDemoScenarios(new Date());
-    setDonation(scenarioId === "scenario1" ? fresh.donation1 : fresh.donation2);
+    setDonation(fresh.donation1);
     setRecipients(fresh.recipients);
     setExtractionResult(null);
     setIsSafetyApproved(false);
     setReservationConfirmed(false);
     setDispatchStatus("reserved");
+    setDigitalTwinExcludedId(null);
     setActiveStep(1);
   };
 
-  const activeDonation = useMemo(() => {
-    return scenarioId === "scenario1" ? donation : { ...donation, quantity: 250, remainingQuantity: 250 };
-  }, [scenarioId, donation]);
-
   // Run Real RelayMatch Allocation Engine
   const matchResult = useMemo(() => {
-    // If not safety approved, donation will be blocked by safety gate
     const testDon = {
-      ...activeDonation,
+      ...donation,
       safetyReviewStatus: isSafetyApproved ? ("eligible_for_matching" as const) : ("awaiting_human_review" as const),
       status: isSafetyApproved ? ("available" as const) : ("awaiting_review" as const),
     };
     return runRelayMatch(testDon, recipients, DEFAULT_WEIGHTS, now);
-  }, [activeDonation, recipients, isSafetyApproved, now]);
+  }, [donation, recipients, isSafetyApproved, now]);
+
+  // Step 6 Digital Twin calculation
+  const digitalTwinResult = useMemo(() => {
+    if (!digitalTwinExcludedId) return matchResult;
+    const modifiedRecs = recipients.map((r) =>
+      r.id === digitalTwinExcludedId ? { ...r, availableCapacity: 0, remainingDemand: 0 } : r
+    );
+    const testDon = {
+      ...donation,
+      safetyReviewStatus: "eligible_for_matching" as const,
+      status: "available" as const,
+    };
+    return runRelayMatch(testDon, modifiedRecs, DEFAULT_WEIGHTS, now);
+  }, [donation, recipients, digitalTwinExcludedId, matchResult, now]);
 
   // Step 2: Trigger AI Extraction
   const handleRunAiExtraction = async () => {
@@ -276,7 +274,7 @@ export default function InteractiveDemoPage() {
       } catch {}
     }
 
-    // Offline / Fallback sample
+    // Offline Deterministic Sample Fallback
     setTimeout(() => {
       setExtractionResult({
         data: {
@@ -297,58 +295,63 @@ export default function InteractiveDemoPage() {
       });
       setActiveStep(3);
       setIsExtracting(false);
-    }, 600);
+    }, 500);
   };
 
-  // Step 4: Simulate Coordinator Approval
+  // Step 3: Simulate Coordinator Approval
   const handleSimulateApproval = () => {
     setIsSafetyApproved(true);
     setDonation((prev) => ({
       ...prev,
       safetyReviewStatus: "eligible_for_matching",
       status: "available",
-      safetyReviewNotes: "Coordinator verified packaging seals and heated holding compliance.",
+      safetyReviewNotes: "Coordinator verified packaging seals and heated holding compliance per FSSAI 2019.",
       safetyReviewer: "Coordinator (Evaluator)",
       safetyReviewedAt: new Date().toISOString(),
     }));
-    setActiveStep(5);
+    setActiveStep(4);
   };
 
-  // Step 8: Confirm Reservation Plan
-  const handleConfirmReservation = () => {
-    setReservationConfirmed(true);
-    setActiveStep(9);
-  };
-
-  // Step 9: Advance Dispatch
+  // Step 7: Advance Dispatch
   const handleAdvanceDispatch = () => {
     if (dispatchStatus === "reserved") setDispatchStatus("accepted");
     else if (dispatchStatus === "accepted") setDispatchStatus("collected");
     else if (dispatchStatus === "collected") {
       setDispatchStatus("delivered");
-      setActiveStep(10);
+      setActiveStep(8);
     }
   };
+
+  const stepTitles = [
+    "The Problem (Greenfield College)",
+    "AI Intake & Fact Extraction",
+    "Responsible AI & Safety Review",
+    "Intelligent Matching Engine",
+    "Visual Portion Flow",
+    "Rescue Digital Twin (Decision-Making)",
+    "Confirm & Traceable Dispatch",
+    "Impact Reveal & Completion",
+  ];
 
   return (
     <AppShell>
       <div className="space-y-6 max-w-5xl mx-auto">
-        {/* Top Control Header */}
+        {/* Top Header & Mode Toggle */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-white border border-gray-100 shadow-subtle">
           <div>
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald animate-ping" />
               <h1 className="font-heading font-extrabold text-xl text-forest">
-                Interactive Food Rescue Simulation
+                Experience FoodRelay — 2 Minute Demo
               </h1>
             </div>
             <p className="text-xs text-charcoal-muted mt-0.5">
-              Experience the complete FoodRelay workflow: AI Intake → Safety Gate → RelayMatch → Handover.
+              Live evaluative walkthrough: Unstructured message → FSSAI Safety Gate → RelayMatch → Verifiable Handover.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* AI Mode Pill */}
+            {/* AI Engine Switcher */}
             <div className="flex items-center bg-cream rounded-xl p-1 border border-gray-200 text-xs">
               <button
                 onClick={() => setAiMode("live")}
@@ -364,7 +367,7 @@ export default function InteractiveDemoPage() {
                   aiMode === "offline" ? "bg-forest text-mint shadow-subtle" : "text-charcoal-muted"
                 }`}
               >
-                Offline Demo Mode
+                Offline Interactive Mode
               </button>
             </div>
 
@@ -380,171 +383,135 @@ export default function InteractiveDemoPage() {
           </div>
         </div>
 
-        {/* Persistent Demo Progress Bar */}
+        {/* Persistent 8-Step Demo Progress Bar */}
         <div className="p-4 rounded-2xl bg-white border border-emerald/20 shadow-subtle space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-forest">
             <span>
-              STEP {activeStep} OF 10:{" "}
-              {activeStep === 1
-                ? "Scenario Introduction"
-                : activeStep === 2
-                ? "AI Multilingual Intake"
-                : activeStep === 3
-                ? "Missing Information Blocker"
-                : activeStep === 4
-                ? "Simulated Safety Review"
-                : activeStep === 5
-                ? "RelayMatch Engine Execution"
-                : activeStep === 6
-                ? "Visual Food Flow"
-                : activeStep === 7
-                ? "RelayMatch vs. FCFS Benchmark"
-                : activeStep === 8
-                ? "Allocation Reservation"
-                : activeStep === 9
-                ? "Simulate Guarded Delivery"
-                : "Impact Reveal"}
+              STEP {activeStep} OF 8: {stepTitles[activeStep - 1]}
             </span>
-            <span className="text-emerald font-extrabold">{activeStep * 10}%</span>
+            <span className="text-emerald font-extrabold">{Math.round((activeStep / 8) * 100)}%</span>
           </div>
 
           <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
             <div
               className="bg-emerald h-full transition-all duration-300 rounded-full"
-              style={{ width: `${activeStep * 10}%` }}
+              style={{ width: `${(activeStep / 8) * 100}%` }}
             />
           </div>
 
-          {/* Quick Step Pager */}
+          {/* Step Pager Controls */}
           <div className="flex items-center justify-between pt-1 text-[11px] text-charcoal-muted">
             <button
               onClick={() => setActiveStep((p) => Math.max(1, p - 1))}
               disabled={activeStep === 1}
               className="hover:text-forest disabled:opacity-30 inline-flex items-center gap-1 font-semibold"
             >
-              <ChevronLeft className="w-3.5 h-3.5" /> Prev Step
+              <ChevronLeft className="w-3.5 h-3.5" /> Previous
             </button>
 
             <span className="text-[10px] text-charcoal-muted">
-              Estimated duration: ~90 seconds
+              ✦ Zero registration · 100% Client-Safe Simulation
             </span>
 
             <button
-              onClick={() => setActiveStep((p) => Math.min(10, p + 1))}
-              disabled={activeStep === 10}
+              onClick={() => setActiveStep((p) => Math.min(8, p + 1))}
+              disabled={activeStep === 8}
               className="hover:text-forest disabled:opacity-30 inline-flex items-center gap-1 font-semibold"
             >
-              Next Step <ChevronRight className="w-3.5 h-3.5" />
+              Next <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
-        {/* STEP WORKSPACE CARDS */}
-
-        {/* STEP 1: Scenario Introduction */}
+        {/* ------------------------------------------------------------------ */}
+        {/* STEP 1: THE PROBLEM */}
+        {/* ------------------------------------------------------------------ */}
         {activeStep === 1 && (
-          <div className="p-6 rounded-3xl bg-white border border-gray-100 shadow-elevation space-y-4">
+          <div className="p-6 rounded-3xl bg-white border border-gray-100 shadow-elevation space-y-5">
             <div className="flex items-center gap-2.5">
               <div className="p-2.5 rounded-2xl bg-mint text-forest">
                 <Building className="w-5 h-5 text-emerald" />
               </div>
               <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald">
+                  Step 1: The Surplus Food Paradox
+                </span>
                 <h3 className="font-heading font-extrabold text-base text-forest">
-                  Experience a Complete Food Rescue Operation
+                  Greenfield College Canteen has 180 Meals Left Over
                 </h3>
-                <p className="text-xs text-charcoal-muted">
-                  PromptWars × Echo Engineers · Evaluator Interactive Journey
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div className="p-4 rounded-2xl bg-cream/70 border border-gray-100 space-y-2">
+                <strong className="text-forest text-sm block">The Real-World Dilemma:</strong>
+                <p className="text-charcoal-muted leading-relaxed">
+                  Following a weekend university seminar, the campus canteen has <strong>180 freshly cooked vegetarian meal portions</strong> (biryani, dal makhani, and rotis) packed in hot thermal cambros.
+                </p>
+                <p className="text-charcoal-muted leading-relaxed">
+                  The food is safe, but perishes rapidly. The mess manager has under 3 hours to coordinate pickup before food quality degrades, violating regulatory safety windows.
                 </p>
               </div>
-            </div>
 
-            <div className="p-4 rounded-2xl bg-cream border border-emerald/10 text-xs text-charcoal space-y-2 leading-relaxed">
-              <p>
-                <strong>The Scenario:</strong> A fictional college canteen in Sector 62, Noida has{" "}
-                <strong>180 freshly prepared vegetarian meal portions</strong> left over after a campus symposium.
-              </p>
-              <p>
-                Nearby shelters have urgent dinner demand, but uncoordinated food cannot simply be dropped off.
-                It requires:
-              </p>
-              <ul className="list-disc list-inside space-y-1 text-charcoal-muted pl-2">
-                <li>Multilingual information extraction (dates, containers, dietary constraints).</li>
-                <li>FSSAI 2019 food safety gate evaluation and coordinator inspection.</li>
-                <li>Constraint-aware multi-recipient portion allocation (RelayMatch).</li>
-                <li>Traceable handover with digital verification receipts.</li>
-              </ul>
-            </div>
-
-            <div className="flex items-center justify-between pt-2">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-charcoal-muted">Choose Scenario Batch:</span>
-                <button
-                  onClick={() => {
-                    setScenarioId("scenario1");
-                    setDonation(initialData.donation1);
-                  }}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold ${
-                    scenarioId === "scenario1"
-                      ? "bg-forest text-white"
-                      : "bg-cream text-charcoal hover:bg-cream-dark"
-                  }`}
-                >
-                  180 Portions (Full Match)
-                </button>
-                <button
-                  onClick={() => {
-                    setScenarioId("scenario2");
-                    setDonation(initialData.donation2);
-                  }}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold ${
-                    scenarioId === "scenario2"
-                      ? "bg-forest text-white"
-                      : "bg-cream text-charcoal hover:bg-cream-dark"
-                  }`}
-                >
-                  250 Portions (Capacity Bottleneck)
-                </button>
+              <div className="p-4 rounded-2xl bg-forest text-white space-y-2">
+                <strong className="text-mint text-sm block">Why Coordination Fails:</strong>
+                <p className="text-cream/80 leading-relaxed">
+                  A WhatsApp message sent to random shelter volunteers leads to:
+                </p>
+                <ul className="list-disc list-inside space-y-1 text-cream/70">
+                  <li>Unchecked food safety & allergen risks</li>
+                  <li>Over-delivering to one shelter while another goes hungry</li>
+                  <li>Long transit times spoiling heated meals</li>
+                </ul>
               </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+              <span className="text-xs text-charcoal-muted">
+                Quantity: <strong>180 portions</strong> · Location: <strong>Sector 62, Noida</strong>
+              </span>
 
               <button
                 onClick={() => setActiveStep(2)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-forest hover:bg-forest-light text-white text-xs font-bold shadow-subtle transition"
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-forest hover:bg-forest-light text-white text-xs font-bold shadow-subtle transition"
               >
-                Begin AI Intake →
+                Proceed to AI Intake →
               </button>
             </div>
           </div>
         )}
 
-        {/* STEP 2: AI Smart Intake */}
+        {/* ------------------------------------------------------------------ */}
+        {/* STEP 2: AI INTAKE */}
+        {/* ------------------------------------------------------------------ */}
         {activeStep === 2 && (
           <div className="p-6 rounded-3xl bg-white border border-gray-100 shadow-elevation space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <div className="flex items-center gap-2">
-                <Cpu className="w-5 h-5 text-emerald" />
+                <Sparkles className="w-5 h-5 text-emerald" />
                 <h3 className="font-heading font-extrabold text-base text-forest">
-                  Step 2: Multilingual AI Smart Intake
+                  Step 2: Multilingual Natural-Language Intake
                 </h3>
               </div>
-              <span className="text-[10px] uppercase font-bold text-emerald bg-mint px-2 py-0.5 rounded">
-                Mode: {aiMode === "live" ? "Live Gemini AI" : "Offline Sample"}
+              <span className="text-xs text-charcoal-muted">
+                Engine: <strong className="text-forest">{aiMode === "live" ? "Live Gemini API" : "Offline Deterministic"}</strong>
               </span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-forest text-white space-y-2">
-              <span className="text-[10px] uppercase tracking-wider text-mint font-bold block">
-                Incoming Raw Message (Canteen Manager):
+            {/* Unstructured Raw Message Box */}
+            <div className="p-4 rounded-2xl bg-cream border border-gray-200 text-xs space-y-2">
+              <span className="text-[10px] uppercase font-bold text-charcoal-muted block tracking-wider">
+                Raw WhatsApp / Text Message Received from Donor:
               </span>
-              <p className="font-mono text-xs leading-relaxed text-cream">
-                &quot;Greenfield College Canteen in Sector 62 Noida has 180 extra vegetarian meal
-                portions. Freshly prepared at 12 PM for today&apos;s college event and packed in sealed
-                food-grade containers. Pickup arrangement needed before 2:30 PM.&quot;
+              <p className="italic text-charcoal text-xs bg-white p-3 rounded-xl border border-gray-100">
+                &quot;Greenfield College Canteen in Sector 62 Noida has 180 extra vegetarian meal portions. Freshly prepared at 12 PM for today&apos;s college event and packed in sealed food-grade containers. Pickup arrangement needed before 2:30 PM.&quot;
               </p>
             </div>
 
-            <div className="flex items-center justify-between pt-2">
-              <span className="text-xs text-charcoal-muted">
-                Extracts portions, packaging, and location using structured JSON schema.
+            {/* Action Button */}
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-charcoal-muted">
+                Treats message strictly as data, never as prompt instructions.
               </span>
 
               <button
@@ -554,13 +521,13 @@ export default function InteractiveDemoPage() {
               >
                 {isExtracting ? (
                   <>
-                    <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white" />
-                    Extracting via Gemini...
+                    <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    Extracting Facts...
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4 text-mint" />
-                    Extract Structured Draft
+                    Extract Structured Facts with Gemini →
                   </>
                 )}
               </button>
@@ -568,82 +535,67 @@ export default function InteractiveDemoPage() {
           </div>
         )}
 
-        {/* STEP 3: Missing Information Blocker */}
+        {/* ------------------------------------------------------------------ */}
+        {/* STEP 3: RESPONSIBLE AI & SAFETY REVIEW */}
+        {/* ------------------------------------------------------------------ */}
         {activeStep === 3 && (
           <div className="p-6 rounded-3xl bg-white border border-gray-100 shadow-elevation space-y-4">
-            <div className="flex items-center gap-2 text-amber">
-              <AlertTriangle className="w-5 h-5 text-amber" />
-              <h3 className="font-heading font-extrabold text-base text-forest">
-                Step 3: Missing Information & Safety Gate Hold
-              </h3>
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-amber-dark" />
+                <h3 className="font-heading font-extrabold text-base text-forest">
+                  Step 3: Responsible AI & Safety Gate Blocker
+                </h3>
+              </div>
+              <span className="text-xs font-bold text-amber-dark bg-amber-light px-2.5 py-0.5 rounded-full">
+                Human-in-the-Loop Required
+              </span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-amber-light/20 border border-amber/30 text-xs text-charcoal space-y-2">
-              <p className="font-semibold text-amber-dark">
-                Safety Gate Hold Activated (FSSAI 2019 Compliance):
-              </p>
-              <ul className="list-disc list-inside space-y-1 text-charcoal-muted text-[11px]">
-                <li>
-                  <strong>Confirmed Use-By Window:</strong> The message stated preparation time (12 PM)
-                  and pickup (2:30 PM), but did not provide explicit maximum consumption shelf-life.
-                </li>
-                <li>
-                  <strong>Human Inspection Gate:</strong> Cooked meal surplus cannot be algorithmically
-                  dispatched without human coordinator verification of packaging seals and temperature logs.
-                </li>
-              </ul>
-            </div>
+            {/* AI Extracted Facts Table */}
+            <div className="p-4 rounded-2xl bg-cream/70 border border-gray-200 text-xs space-y-3">
+              <div className="flex items-center justify-between text-xs font-bold text-forest">
+                <span>Extracted Domain Draft:</span>
+                <span className="text-[10px] text-emerald bg-mint px-2 py-0.5 rounded font-mono">
+                  Source: {extractionResult?.source || "AI Extractor"}
+                </span>
+              </div>
 
-            <div className="p-4 rounded-2xl bg-cream border border-gray-200 text-xs space-y-1 font-mono">
-              <div>✦ status: <span className="text-amber font-bold">&quot;awaiting_human_review&quot;</span></div>
-              <div>✦ eligibleForMatching: <span className="text-crimson font-bold">false</span></div>
-              <div>✦ allocationBlocked: <span className="text-forest font-bold">true</span></div>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                onClick={() => setActiveStep(4)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-forest hover:bg-forest-light text-white text-xs font-bold shadow-subtle transition"
-              >
-                Proceed to Human Review →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 4: Simulated Human Review */}
-        {activeStep === 4 && (
-          <div className="p-6 rounded-3xl bg-white border border-gray-100 shadow-elevation space-y-4">
-            <div className="flex items-center gap-2 text-emerald">
-              <ShieldCheck className="w-5 h-5 text-emerald" />
-              <h3 className="font-heading font-extrabold text-base text-forest">
-                Step 4: Simulated Coordinator Safety Review
-              </h3>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-cream border border-gray-200 text-xs space-y-2">
-              <p className="text-charcoal leading-relaxed">
-                As the simulated FoodRelay Coordinator, inspect the Greenfield College Canteen checklist:
-              </p>
-              <div className="space-y-1.5 pt-1">
-                <label className="flex items-center gap-2 text-charcoal">
-                  <CheckCircle2 className="w-4 h-4 text-emerald" />
-                  <span>Containers verified as clean, food-grade thermal cambros (Reg 6(3)).</span>
-                </label>
-                <label className="flex items-center gap-2 text-charcoal">
-                  <CheckCircle2 className="w-4 h-4 text-emerald" />
-                  <span>Cooking temperature verified above 60°C at 12:00 PM.</span>
-                </label>
-                <label className="flex items-center gap-2 text-charcoal">
-                  <CheckCircle2 className="w-4 h-4 text-emerald" />
-                  <span>Confirmed safe use-by window recorded: 4:00 PM today (4-hour FSSAI window).</span>
-                </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                <div className="bg-white p-2.5 rounded-xl border border-gray-100">
+                  <span className="text-charcoal-muted block text-[10px]">Donor</span>
+                  <strong className="text-forest">{extractionResult?.data?.donorOrganization || "Greenfield College Canteen"}</strong>
+                </div>
+                <div className="bg-white p-2.5 rounded-xl border border-gray-100">
+                  <span className="text-charcoal-muted block text-[10px]">Portions</span>
+                  <strong className="text-forest">{extractionResult?.data?.quantity || 180} portions</strong>
+                </div>
+                <div className="bg-white p-2.5 rounded-xl border border-gray-100">
+                  <span className="text-charcoal-muted block text-[10px]">Dietary</span>
+                  <strong className="text-forest capitalize">{extractionResult?.data?.dietaryCategory || "Vegetarian"}</strong>
+                </div>
+                <div className="bg-white p-2.5 rounded-xl border border-gray-100">
+                  <span className="text-charcoal-muted block text-[10px]">Packaging</span>
+                  <strong className="text-forest">Sealed Containers</strong>
+                </div>
               </div>
             </div>
 
+            {/* Non-Negotiable Safety Gate Callout */}
+            <div className="p-4 rounded-2xl bg-amber-light/30 border border-amber/40 text-xs space-y-2">
+              <div className="flex items-center gap-1.5 text-amber-dark font-bold">
+                <AlertTriangle className="w-4 h-4 text-amber" />
+                Safety Blocker: AI cannot certify edible quality or temperature safety.
+              </div>
+              <p className="text-charcoal-muted leading-relaxed text-[11px]">
+                Indian Surplus Food Regulations (FSSAI 2019 Regulation 6) require physical coordinator verification of thermal holding integrity before meals become allocatable to shelters.
+              </p>
+            </div>
+
+            {/* Simulated Action */}
             <div className="flex items-center justify-between pt-2">
               <span className="text-[11px] text-charcoal-muted">
-                Simulated Action · Cites FSSAI Recovery Regulations (2019)
+                Status: <strong>Awaiting Human Safety Sign-off</strong>
               </span>
 
               <button
@@ -651,24 +603,26 @@ export default function InteractiveDemoPage() {
                 className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald hover:bg-emerald-dark text-white text-xs font-bold shadow-subtle transition"
               >
                 <ShieldCheck className="w-4 h-4" />
-                Simulate Coordinator Safety Approval
+                Sign Off & Mark Eligible for Matching →
               </button>
             </div>
           </div>
         )}
 
-        {/* STEP 5: RelayMatch Allocation Engine Execution */}
-        {activeStep === 5 && (
+        {/* ------------------------------------------------------------------ */}
+        {/* STEP 4: INTELLIGENT MATCHING */}
+        {/* ------------------------------------------------------------------ */}
+        {activeStep === 4 && (
           <div className="p-6 rounded-3xl bg-white border border-gray-100 shadow-elevation space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <Scale className="w-5 h-5 text-forest" />
                 <h3 className="font-heading font-extrabold text-base text-forest">
-                  Step 5: RelayMatch Engine Calculation
+                  Step 4: RelayMatch Deterministic Engine Execution
                 </h3>
               </div>
               <span className="text-xs font-semibold text-emerald bg-mint px-2.5 py-0.5 rounded-full">
-                Safety Passed · 100% Deterministic
+                Zero Black Box · Real Math
               </span>
             </div>
 
@@ -677,10 +631,10 @@ export default function InteractiveDemoPage() {
               <table className="w-full text-left">
                 <thead className="bg-cream text-charcoal-muted uppercase text-[10px]">
                   <tr>
-                    <th className="p-2.5 rounded-l-lg">Recipient Shelter</th>
-                    <th className="p-2.5">Straight-Line Dist</th>
+                    <th className="p-2.5 rounded-l-lg">Eligible Shelter</th>
+                    <th className="p-2.5">Distance</th>
                     <th className="p-2.5">Urgency</th>
-                    <th className="p-2.5">Score</th>
+                    <th className="p-2.5">Match Score</th>
                     <th className="p-2.5 rounded-r-lg text-right">Allocated Portions</th>
                   </tr>
                 </thead>
@@ -691,7 +645,7 @@ export default function InteractiveDemoPage() {
                       <td className="p-2.5 text-charcoal">{alloc.distanceKm} km</td>
                       <td className="p-2.5">
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-mint text-forest uppercase">
-                          Critical/High
+                          Critical / High
                         </span>
                       </td>
                       <td className="p-2.5 font-bold text-emerald">{alloc.score} / 100</td>
@@ -704,19 +658,19 @@ export default function InteractiveDemoPage() {
               </table>
             </div>
 
-            {/* Ineligible Recipient Reasons */}
+            {/* Hard Constraint Exclusion Reasons */}
             <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs space-y-1">
-              <span className="font-bold text-charcoal block">Excluded Recipients:</span>
+              <span className="font-bold text-charcoal block">Excluded Recipients (Hard Constraints Enforced):</span>
               <p className="text-[11px] text-charcoal-muted">
-                ✦ <strong>Full House Shelter:</strong> Excluded (Zero remaining receiving capacity).<br />
-                ✦ <strong>Seva Non-Veg Canteen:</strong> Excluded (Dietary mismatch: accepts non-veg only).
+                ✦ <strong>Seva Niketan Relief:</strong> Excluded (Zero available capacity remaining).<br />
+                ✦ <strong>Navjeevan Hostel:</strong> Excluded (Allergen conflict: recipient has strict dairy restriction).
               </p>
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
-                onClick={() => setActiveStep(6)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-forest hover:bg-forest-light text-white text-xs font-bold shadow-subtle transition"
+                onClick={() => setActiveStep(5)}
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-forest hover:bg-forest-light text-white text-xs font-bold shadow-subtle transition"
               >
                 Inspect Visual Food Flow →
               </button>
@@ -724,17 +678,19 @@ export default function InteractiveDemoPage() {
           </div>
         )}
 
-        {/* STEP 6: Visual Food Flow */}
-        {activeStep === 6 && (
+        {/* ------------------------------------------------------------------ */}
+        {/* STEP 5: VISUAL ALLOCATION FLOW */}
+        {/* ------------------------------------------------------------------ */}
+        {activeStep === 5 && (
           <div className="p-6 rounded-3xl bg-forest text-white border border-emerald/30 shadow-elevation space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-forest-light/30">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-mint" />
                 <h3 className="font-heading font-extrabold text-base text-white">
-                  Step 6: Visual Multi-Recipient Portion Flow
+                  Step 5: Visual Multi-Recipient Portion Distribution
                 </h3>
               </div>
-              <span className="text-xs text-mint font-mono">180 Portions Total</span>
+              <span className="text-xs text-mint font-mono font-bold">180 Portions Total</span>
             </div>
 
             {/* Interactive Flow Diagram */}
@@ -750,183 +706,171 @@ export default function InteractiveDemoPage() {
                 <span className="text-xs text-mint font-bold block">180 Vegetarian Meals</span>
               </div>
 
-              {/* Central Engine Arrow */}
-              <div className="flex flex-col items-center justify-center text-mint font-mono text-xs">
-                <ArrowRight className="w-6 h-6 text-mint animate-pulse" />
-                <span className="text-[9px] uppercase tracking-widest mt-1 text-cream/70">
-                  RelayMatch
-                </span>
+              {/* Arrow */}
+              <div className="flex flex-col items-center text-mint font-mono text-xs">
+                <ArrowRight className="w-6 h-6 hidden md:block text-emerald" />
+                <span className="text-[10px] text-mint/80">Constraint Split</span>
               </div>
 
-              {/* 3 Matched Recipients */}
-              <div className="space-y-2 w-full md:w-1/2">
-                <div className="p-2.5 rounded-xl bg-forest-dark border border-forest-light/20 flex items-center justify-between text-xs">
-                  <div>
-                    <strong className="text-white block">Community Kitchen A (1.8 km)</strong>
-                    <span className="text-[10px] text-cream/70">Critical Urgency · Score 94</span>
+              {/* Recipient Branches */}
+              <div className="w-full md:w-1/2 space-y-2">
+                {matchResult.suggestedAllocations.map((alloc) => (
+                  <div
+                    key={alloc.recipientId}
+                    className="p-3 rounded-xl bg-forest-dark/90 border border-forest-light/20 flex items-center justify-between text-xs"
+                  >
+                    <div>
+                      <strong className="text-white block">{alloc.recipientName}</strong>
+                      <span className="text-[10px] text-cream/70">
+                        {alloc.distanceKm} km away · Proximity & Urgency matched
+                      </span>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-lg bg-mint text-forest font-extrabold text-xs">
+                      {alloc.allocatedPortions} portions
+                    </span>
                   </div>
-                  <span className="px-3 py-1 rounded-lg bg-emerald font-extrabold text-white">
-                    80 Portions
-                  </span>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-forest-dark border border-forest-light/20 flex items-center justify-between text-xs">
-                  <div>
-                    <strong className="text-white block">Hope Shelter B (3.2 km)</strong>
-                    <span className="text-[10px] text-cream/70">High Urgency · Score 88</span>
-                  </div>
-                  <span className="px-3 py-1 rounded-lg bg-emerald font-extrabold text-white">
-                    60 Portions
-                  </span>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-forest-dark border border-forest-light/20 flex items-center justify-between text-xs">
-                  <div>
-                    <strong className="text-white block">Care Centre C (4.1 km)</strong>
-                    <span className="text-[10px] text-cream/70">Moderate Urgency · Score 79</span>
-                  </div>
-                  <span className="px-3 py-1 rounded-lg bg-emerald font-extrabold text-white">
-                    40 Portions
-                  </span>
-                </div>
+                ))}
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2">
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-forest-light/30">
               <button
-                onClick={() => setActiveStep(7)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-mint text-forest hover:bg-white text-xs font-bold shadow-subtle transition"
+                onClick={() => setActiveStep(6)}
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-mint text-forest hover:bg-white text-xs font-bold shadow-card transition"
               >
-                Compare with FCFS Benchmark →
+                Test Operational Shock (Digital Twin) →
               </button>
             </div>
           </div>
         )}
 
-        {/* STEP 7: Matching Benchmark */}
-        {activeStep === 7 && (
-          <div className="space-y-4">
-            <MatchingBenchmarkUI
-              donation={activeDonation}
-              recipients={recipients}
-              weights={DEFAULT_WEIGHTS}
-            />
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                onClick={() => setActiveStep(8)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-forest hover:bg-forest-light text-white text-xs font-bold shadow-subtle transition"
-              >
-                Reserve Suggested Plan →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 8: Allocation Reservation */}
-        {activeStep === 8 && (
+        {/* ------------------------------------------------------------------ */}
+        {/* STEP 6: OPERATIONAL DECISION-MAKING (RESCUE DIGITAL TWIN) */}
+        {/* ------------------------------------------------------------------ */}
+        {activeStep === 6 && (
           <div className="p-6 rounded-3xl bg-white border border-gray-100 shadow-elevation space-y-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald" />
-              <h3 className="font-heading font-extrabold text-base text-forest">
-                Step 8: Confirm Portion Reservations
-              </h3>
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-emerald" />
+                <div>
+                  <h3 className="font-heading font-extrabold text-base text-forest">
+                    Step 6: Operational Decision-Making (Rescue Digital Twin)
+                  </h3>
+                  <p className="text-xs text-charcoal-muted">
+                    Simulate network disruption: What happens if a critical shelter suddenly goes offline?
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs font-bold text-forest bg-mint px-2.5 py-0.5 rounded-full">
+                Dynamic Rebalancing
+              </span>
             </div>
 
-            <p className="text-xs text-charcoal-muted leading-relaxed">
-              Reserving holds meal portions in the allocation ledger, decrementing available donor portions
-              and recipient capacity without creating duplicate commitments.
-            </p>
+            {/* Interactive Disruption Levers */}
+            <div className="p-4 rounded-2xl bg-cream/70 border border-gray-200 text-xs space-y-3">
+              <span className="font-bold text-forest block">
+                Click a shelter below to simulate taking it offline mid-operation:
+              </span>
 
-            <div className="p-4 rounded-2xl bg-cream border border-emerald/20 text-xs space-y-2">
-              <div className="flex justify-between font-semibold text-forest">
-                <span>Greenfield College Canteen:</span>
-                <span>180 Portions Reserved</span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {recipients.slice(0, 3).map((r) => {
+                  const isOff = digitalTwinExcludedId === r.id;
+                  return (
+                    <button
+                      key={r.id}
+                      onClick={() => setDigitalTwinExcludedId(isOff ? null : r.id)}
+                      className={`p-3 rounded-xl border text-left transition flex items-center justify-between ${
+                        isOff
+                          ? "bg-amber-light border-amber text-charcoal"
+                          : "bg-white border-gray-200 hover:border-emerald"
+                      }`}
+                    >
+                      <div>
+                        <strong className="block text-xs line-clamp-1">{r.organizationName}</strong>
+                        <span className="text-[10px] text-charcoal-muted">Cap: {r.availableCapacity} portions</span>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${isOff ? "bg-amber text-charcoal" : "bg-mint text-forest"}`}>
+                        {isOff ? "Offline" : "Online"}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-              <div className="flex justify-between text-charcoal-muted text-[11px]">
-                <span>Remaining Unallocated Balance:</span>
-                <span className="text-emerald font-bold">0 portions (100% allocated)</span>
-              </div>
+
+              {digitalTwinExcludedId && (
+                <div className="p-3 rounded-xl bg-white border border-amber/30 text-xs text-charcoal space-y-1">
+                  <span className="font-bold text-forest block">✦ Real-Time Algorithmic Re-routing:</span>
+                  <p className="text-[11px] text-charcoal-muted">
+                    Because <strong>{recipients.find((r) => r.id === digitalTwinExcludedId)?.organizationName}</strong> was toggled offline, RelayMatch immediately calculated a revised plan: allocated {digitalTwinResult.allocatedPortions} portions, with {digitalTwinResult.unallocatedPortions} portions unallocated or re-routed.
+                  </p>
+                  <button
+                    onClick={() => setDigitalTwinExcludedId(null)}
+                    className="text-xs text-emerald font-bold hover:underline pt-1 inline-flex items-center gap-1"
+                  >
+                    <RotateCcw className="w-3 h-3" /> Restore Original Network Scenario
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
-                onClick={handleConfirmReservation}
+                onClick={() => {
+                  setDigitalTwinExcludedId(null);
+                  setActiveStep(7);
+                }}
                 className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-forest hover:bg-forest-light text-white text-xs font-bold shadow-subtle transition"
               >
-                <CheckCircle2 className="w-4 h-4 text-mint" />
-                Reserve 180 Meal Portions
+                Confirm Plan & Proceed to Dispatch →
               </button>
             </div>
           </div>
         )}
 
-        {/* STEP 9: Simulate Guarded Delivery */}
-        {activeStep === 9 && (
+        {/* ------------------------------------------------------------------ */}
+        {/* STEP 7: CONFIRM & TRACEABLE DISPATCH */}
+        {/* ------------------------------------------------------------------ */}
+        {activeStep === 7 && (
           <div className="p-6 rounded-3xl bg-white border border-gray-100 shadow-elevation space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <Truck className="w-5 h-5 text-forest" />
                 <h3 className="font-heading font-extrabold text-base text-forest">
-                  Step 9: Guarded Dispatch Pipeline Simulation
+                  Step 7: Traceable Dispatch Pipeline Progression
                 </h3>
               </div>
-              <span className="text-xs font-bold text-forest uppercase">
+              <span className="text-xs font-bold text-forest uppercase bg-mint px-2.5 py-0.5 rounded-full">
                 Status: {dispatchStatus.replace("_", " ")}
               </span>
             </div>
 
             <p className="text-xs text-charcoal-muted leading-relaxed">
-              FoodRelay prevents accidental or fabricated deliveries. Each transition is audited:
-              Proposed → Reserved → Accepted → Collected → Delivered.
+              FoodRelay prevents arbitrary state jumps. Every handover must progress through linear audited transitions:
+              <strong> Reserved → Recipient Accepted → In Transit → Confirmed Delivered</strong>.
             </p>
 
             {/* Pipeline Stage Pills */}
             <div className="grid grid-cols-4 gap-2 text-center text-xs">
-              <div
-                className={`p-3 rounded-xl border font-bold transition ${
-                  dispatchStatus === "reserved"
-                    ? "bg-forest text-white border-forest"
-                    : "bg-cream text-charcoal border-gray-200"
-                }`}
-              >
+              <div className={`p-3 rounded-xl border font-bold ${dispatchStatus === "reserved" ? "bg-forest text-white" : "bg-cream text-charcoal border-gray-200"}`}>
                 1. Reserved
               </div>
-              <div
-                className={`p-3 rounded-xl border font-bold transition ${
-                  dispatchStatus === "accepted"
-                    ? "bg-forest text-white border-forest"
-                    : "bg-cream text-charcoal border-gray-200"
-                }`}
-              >
+              <div className={`p-3 rounded-xl border font-bold ${dispatchStatus === "accepted" ? "bg-forest text-white" : "bg-cream text-charcoal border-gray-200"}`}>
                 2. Accepted
               </div>
-              <div
-                className={`p-3 rounded-xl border font-bold transition ${
-                  dispatchStatus === "collected"
-                    ? "bg-forest text-white border-forest"
-                    : "bg-cream text-charcoal border-gray-200"
-                }`}
-              >
+              <div className={`p-3 rounded-xl border font-bold ${dispatchStatus === "collected" ? "bg-forest text-white" : "bg-cream text-charcoal border-gray-200"}`}>
                 3. Collected
               </div>
-              <div
-                className={`p-3 rounded-xl border font-bold transition ${
-                  dispatchStatus === "delivered"
-                    ? "bg-emerald text-white border-emerald"
-                    : "bg-cream text-charcoal border-gray-200"
-                }`}
-              >
+              <div className={`p-3 rounded-xl border font-bold ${dispatchStatus === "delivered" ? "bg-emerald text-white" : "bg-cream text-charcoal border-gray-200"}`}>
                 4. Delivered
               </div>
             </div>
 
-            {/* Verification Receipt Preview */}
+            {/* Digital Receipt Voucher Preview */}
             <div className="p-4 rounded-2xl bg-cream border border-gray-200 text-xs flex items-center justify-between">
               <div>
-                <strong className="text-forest block">Digital Handover Receipt:</strong>
+                <strong className="text-forest block">Verifiable Digital Handover Receipt:</strong>
                 <span className="text-[11px] text-charcoal-muted">
-                  Recipient Signature & Cryptographic QR Voucher Generated upon Delivery.
+                  Generates tamper-evident timestamp, recipient sign-off, and QR audit voucher upon delivery.
                 </span>
               </div>
               <QrCode className="w-8 h-8 text-forest opacity-80" />
@@ -934,7 +878,7 @@ export default function InteractiveDemoPage() {
 
             <div className="flex items-center justify-between pt-2">
               <span className="text-xs text-charcoal-muted">
-                Requires simulated coordinator confirmation at each step.
+                Requires explicit simulated confirmation for each transition.
               </span>
 
               <button
@@ -947,8 +891,10 @@ export default function InteractiveDemoPage() {
           </div>
         )}
 
-        {/* STEP 10: Impact Reveal */}
-        {activeStep === 10 && (
+        {/* ------------------------------------------------------------------ */}
+        {/* STEP 8: IMPACT REVEAL & COMPLETION */}
+        {/* ------------------------------------------------------------------ */}
+        {activeStep === 8 && (
           <div className="p-8 rounded-3xl bg-forest text-white border border-emerald/30 shadow-elevation space-y-6 text-center">
             <div className="w-14 h-14 rounded-full bg-mint text-forest flex items-center justify-center mx-auto font-bold">
               <CheckCircle2 className="w-8 h-8 text-emerald" />
@@ -956,50 +902,76 @@ export default function InteractiveDemoPage() {
 
             <div className="space-y-2 max-w-lg mx-auto">
               <span className="text-xs font-bold uppercase tracking-wider text-mint">
-                Simulation Complete!
+                Simulation Successfully Completed!
               </span>
               <h2 className="text-2xl sm:text-3xl font-heading font-extrabold text-white">
-                From surplus food to coordinated community support — one intelligent workflow.
+                From surplus food to coordinated hope — one transparent workflow.
               </h2>
               <p className="text-xs text-cream/80 leading-relaxed">
-                180 meal portions from Greenfield College Canteen have been safely routed, inspected,
-                allocated, and digitally verified across 3 local community shelters.
+                180 meal portions from Greenfield College Canteen were safety-validated, algorithmically matched, and verified across 3 local community shelters.
               </p>
             </div>
 
-            {/* Impact Metric Delta Box */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-xl mx-auto text-center">
-              <div className="p-4 rounded-2xl bg-forest-dark border border-forest-light/20">
-                <span className="text-[10px] text-cream/70 uppercase block">Portions Rescued</span>
-                <strong className="text-2xl font-heading text-mint">+180</strong>
+            {/* Verifiable Impact Metrics Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 max-w-3xl mx-auto text-center">
+              <div className="p-3.5 rounded-2xl bg-forest-dark border border-forest-light/20">
+                <span className="text-[10px] text-cream/70 uppercase block">Portions Allocated</span>
+                <strong className="text-xl font-heading text-mint">180</strong>
               </div>
 
-              <div className="p-4 rounded-2xl bg-forest-dark border border-forest-light/20">
-                <span className="text-[10px] text-cream/70 uppercase block">Total Delivered</span>
-                <strong className="text-2xl font-heading text-white">
-                  {initialDeliveredCount + 180}
-                </strong>
+              <div className="p-3.5 rounded-2xl bg-forest-dark border border-forest-light/20">
+                <span className="text-[10px] text-cream/70 uppercase block">Portions Delivered</span>
+                <strong className="text-xl font-heading text-white">180</strong>
               </div>
 
-              <div className="p-4 rounded-2xl bg-forest-dark border border-forest-light/20 col-span-2 sm:col-span-1">
-                <span className="text-[10px] text-cream/70 uppercase block">Landfill Diversion</span>
-                <strong className="text-2xl font-heading text-emerald-light">450 kg CO2e</strong>
+              <div className="p-3.5 rounded-2xl bg-forest-dark border border-forest-light/20">
+                <span className="text-[10px] text-cream/70 uppercase block">Shelters Served</span>
+                <strong className="text-xl font-heading text-mint">3</strong>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-forest-dark border border-forest-light/20">
+                <span className="text-[10px] text-cream/70 uppercase block">Unallocated Waste</span>
+                <strong className="text-xl font-heading text-emerald-light">0</strong>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-forest-dark border border-forest-light/20 col-span-2 sm:col-span-1">
+                <span className="text-[10px] text-cream/70 uppercase block">CO2e Diverted</span>
+                <strong className="text-xl font-heading text-emerald-light">450 kg</strong>
               </div>
             </div>
 
+            {/* Technical Explanation */}
+            <div className="p-4 rounded-2xl bg-forest-dark/80 border border-forest-light/20 max-w-2xl mx-auto text-left text-xs space-y-1.5 text-cream/80">
+              <strong className="text-mint block">✦ Technical Execution Summary:</strong>
+              <p className="text-[11px] leading-relaxed">
+                <strong>Intake:</strong> Multilingual Gemini extraction converted unstructured Hindi/English text into a strict Zod draft schema with evidence excerpts.
+              </p>
+              <p className="text-[11px] leading-relaxed">
+                <strong>Safety & Matching:</strong> Deterministic Indian FSSAI 2019 checks enforced holding temperature compliance, while the constraint-aware RelayMatch algorithm split portions across nearby shelters by urgency (40%), proximity (30%), and capacity fit (20%).
+              </p>
+            </div>
+
+            {/* 3 Prominent Evaluator Action Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
               <button
                 onClick={handleReset}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-forest-dark hover:bg-forest-light text-white text-xs font-semibold border border-forest-light/30 transition"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-forest-dark hover:bg-forest-light text-white text-xs font-semibold border border-forest-light/30 transition flex items-center justify-center gap-1.5"
               >
-                Restart Demo Journey
+                <RotateCcw className="w-3.5 h-3.5" /> Replay Demo Journey
               </button>
 
               <Link
                 href="/dashboard"
                 className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-mint text-forest font-extrabold text-xs hover:bg-white transition shadow-card"
               >
-                Explore Live Prototype Dashboard →
+                Explore Live Platform →
+              </Link>
+
+              <Link
+                href="/about#ai-transparency"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-forest-light text-white font-semibold text-xs hover:bg-forest-dark border border-mint/20 transition"
+              >
+                View Technical Architecture →
               </Link>
             </div>
           </div>

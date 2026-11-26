@@ -24,8 +24,10 @@ export interface AIClientResult {
  */
 export async function executeGeminiRequest(options: AIClientOptions): Promise<AIClientResult> {
   const startTime = Date.now();
-  const apiKey = process.env.GEMINI_API_KEY;
-  const configuredModel = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
+  const rawKey = process.env.GEMINI_API_KEY;
+  const apiKey = rawKey ? rawKey.replace(/^["']|["']$/g, "").trim() : "";
+  const rawModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const configuredModel = rawModel.replace(/^["']|["']$/g, "").trim();
   const featureEnabled = process.env.AI_ENABLED !== "false";
   const timeoutMs = options.timeoutMs || parseInt(process.env.AI_REQUEST_TIMEOUT_MS || "15000", 10);
 
@@ -33,12 +35,20 @@ export async function executeGeminiRequest(options: AIClientOptions): Promise<AI
     throw new Error("AI features are disabled via AI_ENABLED environment variable.");
   }
 
-  if (!apiKey || apiKey.trim() === "" || apiKey === "your-gemini-api-key-here") {
+  if (!apiKey || apiKey === "" || apiKey === "your-gemini-api-key-here") {
     throw new Error("GEMINI_API_KEY is not configured on the server.");
   }
 
   const modelsToTry = Array.from(
-    new Set([configuredModel, "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.8-flash"])
+    new Set([
+      configuredModel,
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+      "gemini-1.5-flash",
+      "gemini-3.5-flash-lite",
+      "gemini-3.5-flash",
+      "gemini-3.8-flash",
+    ].filter(Boolean))
   );
 
   const ai = new GoogleGenAI({ apiKey });

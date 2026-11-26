@@ -26,6 +26,7 @@ import {
   ChevronRight,
   Check,
   Bot,
+  Activity,
 } from "lucide-react";
 
 interface AppShellProps {
@@ -60,6 +61,7 @@ export function AppShell({ children }: AppShellProps) {
     },
     { label: "Recipients", href: "/recipients", icon: Building2 },
     { label: "Match Center", href: "/matches", icon: GitCompare },
+    { label: "Digital Twin", href: "/matches?view=digital_twin", icon: Activity, badge: "Sim" },
     { label: "Rescue Map", href: "/map", icon: MapPin },
     { label: "Dispatch Board", href: "/dispatch", icon: Truck },
     { label: "Impact Analytics", href: "/impact", icon: BarChart3 },

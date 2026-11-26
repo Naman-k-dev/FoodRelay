@@ -21,8 +21,10 @@ export async function extractDonationDetails(
   currentTime: Date = new Date()
 ): Promise<ExtractionResult> {
   const startTime = Date.now();
-  const apiKey = process.env.GEMINI_API_KEY;
-  const configuredModel = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
+  const rawKey = process.env.GEMINI_API_KEY;
+  const apiKey = rawKey ? rawKey.replace(/^["']|["']$/g, "").trim() : "";
+  const rawModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const configuredModel = rawModel.replace(/^["']|["']$/g, "").trim();
   const featureEnabled =
     process.env.AI_ENABLED !== "false" && process.env.FEATURE_AI_INTAKE !== "false";
 
@@ -83,7 +85,15 @@ Please respond ONLY with a valid JSON object matching this schema:
 
   // Candidate models: configured model first, followed by known available variants
   const modelsToTry = Array.from(
-    new Set([configuredModel, "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.8-flash"])
+    new Set([
+      configuredModel,
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+      "gemini-1.5-flash",
+      "gemini-3.5-flash-lite",
+      "gemini-3.5-flash",
+      "gemini-3.8-flash",
+    ].filter(Boolean))
   );
 
   let lastError: any = null;
