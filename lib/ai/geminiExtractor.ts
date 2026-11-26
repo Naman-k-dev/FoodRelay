@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { ExtractedDraft, ExtractedDraftSchema } from "@/lib/schemas/intake";
+import { ExtractedDraft, ExtractedDraftSchema } from "../schemas/intake";
 import { extractWithFallbackHeuristics } from "./fallbackExtractor";
 
 export interface ExtractionResult {
@@ -22,7 +22,7 @@ export async function extractDonationDetails(
 ): Promise<ExtractionResult> {
   const startTime = Date.now();
   const apiKey = process.env.GEMINI_API_KEY;
-  const configuredModel = process.env.GEMINI_MODEL || "gemini-3.5-flash";
+  const configuredModel = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
   const featureEnabled =
     process.env.AI_ENABLED !== "false" && process.env.FEATURE_AI_INTAKE !== "false";
 
@@ -83,7 +83,7 @@ Please respond ONLY with a valid JSON object matching this schema:
 
   // Candidate models: configured model first, followed by known available variants
   const modelsToTry = Array.from(
-    new Set([configuredModel, "gemini-3.5-flash", "gemini-3.8-flash", "gemini-2.5-flash"])
+    new Set([configuredModel, "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.8-flash"])
   );
 
   let lastError: any = null;

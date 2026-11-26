@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { useFoodRelay } from "@/lib/storage/useFoodRelay";
 import { runRelayMatch, DEFAULT_WEIGHTS } from "@/lib/matching/relayMatch";
+import { MatchingBenchmarkUI } from "@/components/matching/MatchingBenchmarkUI";
 import { Donation, MatchingWeights, MatchResult, Allocation } from "@/types";
 import { formatDateTime } from "@/lib/utils/format";
 import {
@@ -20,6 +21,8 @@ import {
   Clock,
   RotateCcw,
   Building,
+  Sparkles,
+  Layers,
 } from "lucide-react";
 
 function MatchesContent() {
@@ -44,6 +47,7 @@ function MatchesContent() {
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const [showWeightSliders, setShowWeightSliders] = useState(false);
   const [reservationSuccess, setReservationSuccess] = useState(false);
+  const [matchViewMode, setMatchViewMode] = useState<"ranking" | "benchmark">("ranking");
 
   useEffect(() => {
     if (storedWeights) {
@@ -433,9 +437,89 @@ function MatchesContent() {
           </div>
         )}
 
-        {/* Matching Results Section */}
-        {matchResult && (
+        {/* View Mode Toggle: Plan & Ranking vs Benchmark */}
+        {matchResult && selectedDonation && (
+          <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
+            <button
+              onClick={() => setMatchViewMode("ranking")}
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition ${
+                matchViewMode === "ranking"
+                  ? "bg-forest text-white shadow-subtle"
+                  : "bg-white text-charcoal hover:bg-cream border border-gray-200"
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5 text-mint" />
+              Allocation Plan & Score Explainability
+            </button>
+            <button
+              onClick={() => setMatchViewMode("benchmark")}
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition ${
+                matchViewMode === "benchmark"
+                  ? "bg-forest text-white shadow-subtle"
+                  : "bg-white text-charcoal hover:bg-cream border border-gray-200"
+              }`}
+            >
+              <Scale className="w-3.5 h-3.5 text-emerald" />
+              RelayMatch vs. FCFS Benchmark
+            </button>
+          </div>
+        )}
+
+        {/* Benchmark Mode */}
+        {matchViewMode === "benchmark" && selectedDonation && (
+          <MatchingBenchmarkUI
+            donation={selectedDonation}
+            recipients={recipients}
+            weights={weights}
+          />
+        )}
+
+        {/* Matching Results Section (Ranking & Plan Mode) */}
+        {matchResult && matchViewMode === "ranking" && (
           <div className="space-y-6">
+            {/* Animated Allocation Flow Diagram */}
+            {matchResult.suggestedAllocations.length > 0 && selectedDonation && (
+              <div className="p-5 rounded-2xl bg-forest text-white border border-forest-light/30 shadow-subtle space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-forest-light/20">
+                  <span className="text-xs font-bold uppercase tracking-wider text-mint flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-mint" />
+                    Live Multi-Recipient Relay Flow
+                  </span>
+                  <span className="text-[10px] text-cream/70 uppercase">Autonomous Routing</span>
+                </div>
+
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 py-2">
+                  {/* Origin */}
+                  <div className="p-3.5 rounded-xl bg-forest-dark/80 border border-forest-light/20 text-center w-full md:w-1/3">
+                    <span className="text-[10px] uppercase tracking-wider text-mint font-bold block">Donation Source</span>
+                    <strong className="text-sm font-heading block mt-0.5 text-white">{selectedDonation.donorName}</strong>
+                    <span className="text-xs text-mint mt-1 block">{matchResult.totalDonationPortions} portions</span>
+                  </div>
+
+                  {/* Flow Arrow */}
+                  <div className="flex flex-col items-center justify-center text-mint font-mono text-xs">
+                    <ArrowRight className="w-5 h-5 text-mint animate-pulse" />
+                    <span className="text-[9px] uppercase tracking-widest mt-0.5 text-cream/70">RelayMatch</span>
+                  </div>
+
+                  {/* Destinations */}
+                  <div className="space-y-2 w-full md:w-1/2">
+                    {matchResult.suggestedAllocations.map((alloc) => (
+                      <div key={alloc.recipientId} className="p-2.5 rounded-xl bg-forest-dark/80 border border-forest-light/20 flex items-center justify-between text-xs">
+                        <div>
+                          <strong className="text-white block">{alloc.recipientName}</strong>
+                          <span className="text-[10px] text-cream/70">{alloc.distanceKm} km · Score: {alloc.score}/100</span>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-lg bg-emerald font-bold text-white text-xs">
+                          {alloc.allocatedPortions} pts
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Suggested Plan Summary Card */}
             <div className="p-6 rounded-2xl bg-white border border-emerald/20 shadow-elevation space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">

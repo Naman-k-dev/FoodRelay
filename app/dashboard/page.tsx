@@ -1,11 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { useFoodRelay } from "@/lib/storage/useFoodRelay";
 import { computeAnalytics } from "@/lib/analytics/metrics";
 import { formatDateTime } from "@/lib/utils/format";
+import { RescuePulse } from "@/components/dashboard/RescuePulse";
 import {
   PackageCheck,
   PackageOpen,
@@ -19,6 +20,9 @@ import {
   CheckCircle2,
   PlusCircle,
   ExternalLink,
+  Search,
+  Bell,
+  X,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -34,6 +38,8 @@ import {
 
 export default function DashboardPage() {
   const { isHydrated, donations, recipients, allocations, saveDonation } = useFoodRelay();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showNotifications, setShowNotifications] = useState(false);
 
   if (!isHydrated) {
     return (
@@ -131,6 +137,24 @@ export default function DashboardPage() {
     saveDonation(updated);
   };
 
+  // Live search results
+  const matchingDonations = searchQuery.trim()
+    ? donations.filter(
+        (d) =>
+          d.donorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          d.foodDescription.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          d.pickupLocation.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : [];
+
+  const matchingRecipients = searchQuery.trim()
+    ? recipients.filter(
+        (r) =>
+          r.organizationName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          r.location.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : [];
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -146,22 +170,154 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Global Search Input */}
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search donations & shelters..."
+                className="pl-8 pr-3 py-1.5 text-xs rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald/40 w-44 sm:w-56"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Notification Bell */}
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative p-2 rounded-xl bg-white border border-gray-200 text-charcoal hover:bg-cream transition"
+              title="Notifications"
+            >
+              <Bell className="w-4 h-4 text-forest" />
+              {urgentQueue.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber text-charcoal font-bold text-[9px] flex items-center justify-center">
+                  {urgentQueue.length}
+                </span>
+              )}
+            </button>
+
             <Link
               href="/donate"
               className="inline-flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-forest hover:bg-forest-light text-white shadow-subtle transition"
             >
               <Sparkles className="w-4 h-4 text-mint" />
-              AI Smart Intake
-            </Link>
-            <Link
-              href="/matches"
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-white hover:bg-cream text-forest border border-gray-200 shadow-subtle transition"
-            >
-              Match Center
-              <ArrowRight className="w-3.5 h-3.5" />
+              AI Intake
             </Link>
           </div>
         </div>
+
+        {/* Global Search Results Dropdown/Box if Searching */}
+        {searchQuery.trim() && (
+          <div className="p-4 rounded-2xl bg-white border border-emerald/20 shadow-elevation space-y-3">
+            <div className="flex items-center justify-between text-xs pb-2 border-b border-gray-100">
+              <span className="font-bold text-forest">
+                Search Results for &quot;{searchQuery}&quot;
+              </span>
+              <button
+                onClick={() => setSearchQuery("")}
+                className="text-xs text-charcoal-muted hover:text-charcoal"
+              >
+                Clear
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div>
+                <span className="text-[11px] font-bold text-charcoal-muted uppercase tracking-wider block mb-1.5">
+                  Donations ({matchingDonations.length})
+                </span>
+                {matchingDonations.length === 0 ? (
+                  <p className="text-gray-400 text-xs">No matching donations</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {matchingDonations.slice(0, 3).map((d) => (
+                      <Link
+                        key={d.id}
+                        href={`/donations?highlight=${d.id}`}
+                        className="block p-2 rounded-lg bg-cream hover:bg-cream-dark transition"
+                      >
+                        <div className="font-semibold text-forest">{d.donorName}</div>
+                        <div className="text-[11px] text-charcoal-muted line-clamp-1">
+                          {d.foodDescription} · {d.quantity} {d.unit}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <span className="text-[11px] font-bold text-charcoal-muted uppercase tracking-wider block mb-1.5">
+                  Recipient Shelters ({matchingRecipients.length})
+                </span>
+                {matchingRecipients.length === 0 ? (
+                  <p className="text-gray-400 text-xs">No matching recipient shelters</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {matchingRecipients.slice(0, 3).map((r) => (
+                      <Link
+                        key={r.id}
+                        href={`/recipients?highlight=${r.id}`}
+                        className="block p-2 rounded-lg bg-cream hover:bg-cream-dark transition"
+                      >
+                        <div className="font-semibold text-forest">{r.organizationName}</div>
+                        <div className="text-[11px] text-charcoal-muted line-clamp-1">
+                          {r.location} · {r.availableCapacity} portions open
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Notifications Modal */}
+        {showNotifications && (
+          <div className="p-4 rounded-2xl bg-white border border-amber/30 shadow-elevation text-xs space-y-2">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+              <span className="font-bold text-forest flex items-center gap-2">
+                <Bell className="w-4 h-4 text-amber" />
+                Active Operational Notifications
+              </span>
+              <button
+                onClick={() => setShowNotifications(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {urgentQueue.length === 0 ? (
+              <p className="text-charcoal-muted">No pending alerts. All food safety gates clear.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {urgentQueue.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between p-2 rounded-lg bg-amber-light/20 text-charcoal"
+                  >
+                    <div>
+                      <strong>{item.donorName}</strong>: {item.foodDescription} awaiting safety review.
+                    </div>
+                    <Link
+                      href={`/donations?highlight=${item.id}`}
+                      className="text-emerald font-semibold underline text-[11px]"
+                    >
+                      Review →
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Metric Cards Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
@@ -235,6 +391,9 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Real-Time Rescue Pulse Component */}
+        <RescuePulse donations={donations} />
 
         {/* Charts & Urgent Queue Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

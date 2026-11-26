@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
+import { InteractiveAllocationPreview } from "@/components/landing/InteractiveAllocationPreview";
 import {
   ArrowRight,
   ShieldCheck,
@@ -217,6 +218,54 @@ export default function LandingPage() {
                   Audit Trail & Digital Receipt
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Live Algorithm Sandbox - Interactive Allocation Preview */}
+          <div className="mt-12 max-w-5xl mx-auto">
+            <InteractiveAllocationPreview />
+          </div>
+        </div>
+      </section>
+
+      {/* The Urban Reality / Problem vs Solution */}
+      <section className="py-14 bg-forest text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-10">
+            <span className="text-xs font-bold uppercase tracking-wider text-mint">
+              The Urban Dilemma in Noida & NCR
+            </span>
+            <h2 className="text-3xl font-heading font-extrabold mt-2">
+              Food is wasted in banquet halls while shelters struggle 3 km away.
+            </h2>
+            <p className="text-sm text-cream/80 mt-3 leading-relaxed">
+              The barrier isn’t goodwill—it’s logistical friction, language ambiguity, strict safety liability, and fragmented communication. FoodRelay bridges this gap with structured AI and deterministic allocation.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="p-6 rounded-2xl bg-forest-dark/70 border border-forest-light/20">
+              <div className="text-amber text-2xl font-bold font-heading mb-2">40%</div>
+              <h3 className="font-semibold text-white text-base">Uncoordinated Landfill Loss</h3>
+              <p className="text-xs text-cream/70 mt-1 leading-relaxed">
+                Over 40% of catered food at urban banquets and corporate parks is discarded within 3 hours due to lack of immediate redistribution channels.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-forest-dark/70 border border-forest-light/20">
+              <div className="text-mint text-2xl font-bold font-heading mb-2">&lt; 15 Mins</div>
+              <h3 className="font-semibold text-white text-base">Rapid Safe Relay</h3>
+              <p className="text-xs text-cream/70 mt-1 leading-relaxed">
+                Multilingual AI intake and constraint-aware RelayMatch reduce donation coordination from 2 hours of phone calls down to under 15 minutes.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-forest-dark/70 border border-forest-light/20">
+              <div className="text-emerald text-2xl font-bold font-heading mb-2">100%</div>
+              <h3 className="font-semibold text-white text-base">FSSAI Safety Compliance</h3>
+              <p className="text-xs text-cream/70 mt-1 leading-relaxed">
+                Strict packaging integrity, use-by time discipline, and human coordinator gate ensure no unverified or hazardous meals reach beneficiaries.
+              </p>
             </div>
           </div>
         </div>

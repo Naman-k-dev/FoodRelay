@@ -34,6 +34,15 @@ const SAMPLE_MESSAGES = [
   },
 ];
 
+function FieldBadge({ status }: { status: { label: string; color: string } | null }) {
+  if (!status) return null;
+  return (
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border ml-2 ${status.color}`}>
+      {status.label}
+    </span>
+  );
+}
+
 export default function DonatePage() {
   const router = useRouter();
   const { saveDonation } = useFoodRelay();
@@ -51,12 +60,41 @@ export default function DonatePage() {
   } | null>(null);
   const [extractedDraft, setExtractedDraft] = useState<ExtractedDraft | null>(null);
 
-  // Review Form State (Editable)
+  // Dates for defaults
   const now = new Date();
   const defaultPrep = new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString().slice(0, 16);
   const defaultStart = now.toISOString().slice(0, 16);
   const defaultEnd = new Date(now.getTime() + 2.5 * 60 * 60 * 1000).toISOString().slice(0, 16);
   const defaultUseBy = new Date(now.getTime() + 4 * 60 * 60 * 1000).toISOString().slice(0, 16);
+
+  // Track user edits after extraction
+  const [editedFields, setEditedFields] = useState<Record<string, boolean>>({});
+
+  const handleFieldChange = (field: string, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setEditedFields((prev) => ({ ...prev, [field]: true }));
+  };
+
+  // Helper to determine badge status
+  const getFieldStatus = (fieldName: string) => {
+    if (!extractedDraft) return null;
+    if (editedFields[fieldName]) {
+      return { label: "Manually Confirmed", color: "bg-blue-100 text-blue-800 border-blue-200" };
+    }
+    const isAmbiguous = extractedDraft.ambiguousFields?.some((a) =>
+      a.toLowerCase().includes(fieldName.toLowerCase())
+    );
+    if (isAmbiguous) {
+      return { label: "Needs Clarification", color: "bg-amber-100 text-amber-800 border-amber-200" };
+    }
+    const isMissing = extractedDraft.missingFields?.some((m) =>
+      m.toLowerCase().includes(fieldName.toLowerCase())
+    );
+    if (isMissing) {
+      return { label: "Missing", color: "bg-gray-100 text-gray-700 border-gray-200" };
+    }
+    return { label: "Extracted", color: "bg-emerald-100 text-emerald-800 border-emerald-200" };
+  };
 
   const [formData, setFormData] = useState({
     donorName: "",
@@ -257,6 +295,21 @@ export default function DonatePage() {
               </span>
             </div>
 
+            {/* Live Model Badge */}
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-forest-dark text-mint text-xs">
+              <div className="flex items-center gap-2">
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-light"></span>
+                </span>
+                <span className="font-semibold text-white">Configured Model:</span>
+                <span className="font-mono text-mint font-bold">gemini-3.5-flash-lite</span>
+              </div>
+              <span className="text-[10px] text-cream/70 uppercase tracking-wider font-semibold">
+                Official Google GenAI SDK
+              </span>
+            </div>
+
             {/* Privacy Caution Warning */}
             <div className="p-3 rounded-xl bg-amber-light/20 border border-amber/30 text-xs text-charcoal flex items-start gap-2.5">
               <ShieldAlert className="w-4 h-4 text-amber flex-shrink-0 mt-0.5" />
@@ -390,26 +443,28 @@ export default function DonatePage() {
             {/* Row 1: Donor & Type */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-charcoal mb-1 block">
-                  Donor Organization Name *
+                <label className="text-xs font-semibold text-charcoal mb-1 flex items-center">
+                  <span>Donor Organization Name *</span>
+                  <FieldBadge status={getFieldStatus("donorOrganization")} />
                 </label>
                 <input
                   type="text"
                   required
                   value={formData.donorName}
-                  onChange={(e) => setFormData({ ...formData, donorName: e.target.value })}
+                  onChange={(e) => handleFieldChange("donorName", e.target.value)}
                   placeholder="e.g., Grand Hyatt Banquet or College Canteen"
                   className="w-full p-2.5 text-xs sm:text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald/40"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-charcoal mb-1 block">
-                  Donor Entity Type *
+                <label className="text-xs font-semibold text-charcoal mb-1 flex items-center">
+                  <span>Donor Entity Type *</span>
+                  <FieldBadge status={getFieldStatus("donorType")} />
                 </label>
                 <select
                   value={formData.donorType}
-                  onChange={(e) => setFormData({ ...formData, donorType: e.target.value })}
+                  onChange={(e) => handleFieldChange("donorType", e.target.value)}
                   className="w-full p-2.5 text-xs sm:text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald/40 bg-white"
                 >
                   <option value="restaurant">Restaurant / Bistro</option>
@@ -425,26 +480,28 @@ export default function DonatePage() {
             {/* Row 2: Food Description & Category */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="sm:col-span-2">
-                <label className="text-xs font-semibold text-charcoal mb-1 block">
-                  Food Description *
+                <label className="text-xs font-semibold text-charcoal mb-1 flex items-center">
+                  <span>Food Description *</span>
+                  <FieldBadge status={getFieldStatus("foodDescription")} />
                 </label>
                 <input
                   type="text"
                   required
                   value={formData.foodDescription}
-                  onChange={(e) => setFormData({ ...formData, foodDescription: e.target.value })}
+                  onChange={(e) => handleFieldChange("foodDescription", e.target.value)}
                   placeholder="e.g., Dal makhani, paneer butter masala, steamed rice"
                   className="w-full p-2.5 text-xs sm:text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald/40"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-charcoal mb-1 block">
-                  Dietary Category *
+                <label className="text-xs font-semibold text-charcoal mb-1 flex items-center">
+                  <span>Dietary Category *</span>
+                  <FieldBadge status={getFieldStatus("dietaryCategory")} />
                 </label>
                 <select
                   value={formData.dietaryCategory}
-                  onChange={(e) => setFormData({ ...formData, dietaryCategory: e.target.value })}
+                  onChange={(e) => handleFieldChange("dietaryCategory", e.target.value)}
                   className="w-full p-2.5 text-xs sm:text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald/40 bg-white"
                 >
                   <option value="vegetarian">Vegetarian (Shakahari)</option>
@@ -458,26 +515,28 @@ export default function DonatePage() {
             {/* Row 3: Quantity & Unit */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="text-xs font-semibold text-charcoal mb-1 block">
-                  Quantity *
+                <label className="text-xs font-semibold text-charcoal mb-1 flex items-center">
+                  <span>Quantity *</span>
+                  <FieldBadge status={getFieldStatus("quantity")} />
                 </label>
                 <input
                   type="number"
                   min="1"
                   required
                   value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
+                  onChange={(e) => handleFieldChange("quantity", Number(e.target.value))}
                   className="w-full p-2.5 text-xs sm:text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald/40"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-charcoal mb-1 block">
-                  Quantity Unit *
+                <label className="text-xs font-semibold text-charcoal mb-1 flex items-center">
+                  <span>Quantity Unit *</span>
+                  <FieldBadge status={getFieldStatus("quantityUnit")} />
                 </label>
                 <select
                   value={formData.unit}
-                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                  onChange={(e) => handleFieldChange("unit", e.target.value)}
                   className="w-full p-2.5 text-xs sm:text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald/40 bg-white"
                 >
                   <option value="portions">Portions (Standard for Matching)</option>
@@ -488,12 +547,13 @@ export default function DonatePage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-charcoal mb-1 block">
-                  Food Category *
+                <label className="text-xs font-semibold text-charcoal mb-1 flex items-center">
+                  <span>Food Category *</span>
+                  <FieldBadge status={getFieldStatus("foodCategory")} />
                 </label>
                 <select
                   value={formData.foodCategory}
-                  onChange={(e) => setFormData({ ...formData, foodCategory: e.target.value })}
+                  onChange={(e) => handleFieldChange("foodCategory", e.target.value)}
                   className="w-full p-2.5 text-xs sm:text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald/40 bg-white"
                 >
                   <option value="cooked_meals">Cooked Meals (Hot/Prepared)</option>
@@ -508,14 +568,15 @@ export default function DonatePage() {
             {/* Row 4: Pickup Location */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="sm:col-span-2">
-                <label className="text-xs font-semibold text-charcoal mb-1 block">
-                  Pickup Location / Landmark *
+                <label className="text-xs font-semibold text-charcoal mb-1 flex items-center">
+                  <span>Pickup Location / Landmark *</span>
+                  <FieldBadge status={getFieldStatus("pickupLocation")} />
                 </label>
                 <input
                   type="text"
                   required
                   value={formData.pickupLocation}
-                  onChange={(e) => setFormData({ ...formData, pickupLocation: e.target.value })}
+                  onChange={(e) => handleFieldChange("pickupLocation", e.target.value)}
                   className="w-full p-2.5 text-xs sm:text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald/40"
                 />
               </div>
@@ -526,7 +587,7 @@ export default function DonatePage() {
                 <input
                   type="text"
                   value={formData.donorContact}
-                  onChange={(e) => setFormData({ ...formData, donorContact: e.target.value })}
+                  onChange={(e) => handleFieldChange("donorContact", e.target.value)}
                   className="w-full p-2.5 text-xs sm:text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald/40"
                 />
               </div>
@@ -535,12 +596,13 @@ export default function DonatePage() {
             {/* Row 5: Packaging & Storage */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-charcoal mb-1 block">
-                  Packaging Condition *
+                <label className="text-xs font-semibold text-charcoal mb-1 flex items-center">
+                  <span>Packaging Condition *</span>
+                  <FieldBadge status={getFieldStatus("packagingCondition")} />
                 </label>
                 <select
                   value={formData.packagingCondition}
-                  onChange={(e) => setFormData({ ...formData, packagingCondition: e.target.value })}
+                  onChange={(e) => handleFieldChange("packagingCondition", e.target.value)}
                   className="w-full p-2.5 text-xs sm:text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald/40 bg-white"
                 >
                   <option value="sealed_containers">Sealed Food-Grade Containers (Approved)</option>
@@ -551,12 +613,13 @@ export default function DonatePage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-charcoal mb-1 block">
-                  Storage Temperature / Method *
+                <label className="text-xs font-semibold text-charcoal mb-1 flex items-center">
+                  <span>Storage Temperature / Method *</span>
+                  <FieldBadge status={getFieldStatus("storageMethod")} />
                 </label>
                 <select
                   value={formData.storageMethod}
-                  onChange={(e) => setFormData({ ...formData, storageMethod: e.target.value })}
+                  onChange={(e) => handleFieldChange("storageMethod", e.target.value)}
                   className="w-full p-2.5 text-xs sm:text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald/40 bg-white"
                 >
                   <option value="heated">Heated / Insulated (&gt; 60°C)</option>
@@ -570,40 +633,43 @@ export default function DonatePage() {
             {/* Row 6: Timestamps */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="text-xs font-semibold text-charcoal mb-1 block">
-                  Prepared At *
+                <label className="text-xs font-semibold text-charcoal mb-1 flex items-center">
+                  <span>Prepared At *</span>
+                  <FieldBadge status={getFieldStatus("preparedAt")} />
                 </label>
                 <input
                   type="datetime-local"
                   required
                   value={formData.preparedAt}
-                  onChange={(e) => setFormData({ ...formData, preparedAt: e.target.value })}
+                  onChange={(e) => handleFieldChange("preparedAt", e.target.value)}
                   className="w-full p-2.5 text-xs sm:text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald/40"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-charcoal mb-1 block">
-                  Pickup Window End *
+                <label className="text-xs font-semibold text-charcoal mb-1 flex items-center">
+                  <span>Pickup Window End *</span>
+                  <FieldBadge status={getFieldStatus("pickupWindow")} />
                 </label>
                 <input
                   type="datetime-local"
                   required
                   value={formData.pickupWindowEnd}
-                  onChange={(e) => setFormData({ ...formData, pickupWindowEnd: e.target.value })}
+                  onChange={(e) => handleFieldChange("pickupWindowEnd", e.target.value)}
                   className="w-full p-2.5 text-xs sm:text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald/40"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-charcoal mb-1 block">
-                  Confirmed Use-By Time *
+                <label className="text-xs font-semibold text-charcoal mb-1 flex items-center">
+                  <span>Confirmed Use-By Time *</span>
+                  <FieldBadge status={getFieldStatus("useByTime")} />
                 </label>
                 <input
                   type="datetime-local"
                   required
                   value={formData.confirmedUseBy}
-                  onChange={(e) => setFormData({ ...formData, confirmedUseBy: e.target.value })}
+                  onChange={(e) => handleFieldChange("confirmedUseBy", e.target.value)}
                   className="w-full p-2.5 text-xs sm:text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald/40"
                 />
               </div>
@@ -611,14 +677,15 @@ export default function DonatePage() {
 
             {/* Row 7: Handling Notes */}
             <div>
-              <label className="text-xs font-semibold text-charcoal mb-1 block">
-                Handling & Temperature Instructions *
+              <label className="text-xs font-semibold text-charcoal mb-1 flex items-center">
+                <span>Handling & Temperature Instructions *</span>
+                <FieldBadge status={getFieldStatus("handlingInformation")} />
               </label>
               <input
                 type="text"
                 required
                 value={formData.handlingInformation}
-                onChange={(e) => setFormData({ ...formData, handlingInformation: e.target.value })}
+                onChange={(e) => handleFieldChange("handlingInformation", e.target.value)}
                 className="w-full p-2.5 text-xs sm:text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald/40"
               />
             </div>
