@@ -218,6 +218,16 @@ export default function InteractiveDemoPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* Multi-Page Presentation Link */}
+            <Link
+              href="/demo/live/intake"
+              className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald text-white hover:bg-forest transition shadow-sm flex items-center gap-1.5"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Launch Multi-Page Flow</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+
             {/* Mode Switcher Tabs */}
             <div className="flex items-center bg-cream rounded-2xl p-1 border border-gray-200 text-xs">
               <button
@@ -276,6 +286,45 @@ export default function InteractiveDemoPage() {
               <RotateCcw className="w-3.5 h-3.5 text-amber" />
               <span>Reset Demo</span>
             </button>
+          </div>
+        </div>
+
+        {/* Multi-Page Presentation Quick-Stage Navigator */}
+        <div className="p-4 rounded-3xl bg-surface-cream border border-emerald/20 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2">
+              <span className="p-1 rounded-md bg-emerald text-white text-xs">🚀</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-forest">
+                Interconnected Presentation Workflow (7 Dedicated Stages)
+              </span>
+            </div>
+            <Link
+              href="/demo/live/intake"
+              className="text-xs font-bold text-emerald hover:text-forest flex items-center gap-1"
+            >
+              <span>Begin Stage 1 (Intake)</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+            {[
+              { idx: 1, title: "1. Intake", href: "/demo/live/intake" },
+              { idx: 2, title: "2. Safety", href: "/demo/live/review" },
+              { idx: 3, title: "3. Network", href: "/demo/live/network" },
+              { idx: 4, title: "4. Matching", href: "/demo/live/matching" },
+              { idx: 5, title: "5. Digital Twin", href: "/demo/live/digital-twin" },
+              { idx: 6, title: "6. Dispatch", href: "/demo/live/dispatch" },
+              { idx: 7, title: "7. Impact", href: "/demo/live/impact" },
+            ].map((st) => (
+              <Link
+                key={st.idx}
+                href={st.href}
+                className="p-2.5 rounded-xl border border-emerald/15 bg-white hover:border-emerald hover:bg-emerald-50 transition text-center"
+              >
+                <span className="block font-bold text-xs text-forest">{st.title}</span>
+                <span className="text-[10px] text-charcoal-muted">Dedicated View</span>
+              </Link>
+            ))}
           </div>
         </div>
 

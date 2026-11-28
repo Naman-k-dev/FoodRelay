@@ -116,4 +116,59 @@ describe("Interactive Demo Flow & Scenario Matrix Integration", () => {
     expect(result.allocatedPortions).toBeGreaterThan(0);
     expect(result.allocatedPortions + result.unallocatedPortions).toBe(1000);
   });
+
+  it("Flow Test H: Section 18 End-to-End Reactive Sequence (Steps 10 to 17)", () => {
+    // 350 portions donation
+    const don350: Donation = {
+      ...createRound2Donation(now),
+      quantity: 350,
+      remainingQuantity: 350,
+      storageMethod: "ambient",
+    };
+    const recs = createRound2Recipients(now);
+
+    // Initial allocation with 350 portions
+    const res1 = runRelayMatch(don350, recs, DEFAULT_WEIGHTS, now);
+    expect(res1.allocatedPortions).toBeGreaterThan(0);
+
+    // Step 10 & 11: Switch highest-ranked allocated NGO offline (Community Kitchen A)
+    const recsNoA = recs.map((r) => (r.id === "demo-rec-a" ? { ...r, isOnline: false, status: "offline" as const } : r));
+    const res2 = runRelayMatch(don350, recsNoA, DEFAULT_WEIGHTS, now);
+
+    // Step 11: Community Kitchen A immediately receives 0
+    expect(res2.suggestedAllocations.find((a) => a.recipientId === "demo-rec-a")).toBeUndefined();
+
+    // Step 12: Available food is automatically redistributed
+    const hopeB = res2.suggestedAllocations.find((a) => a.recipientId === "demo-rec-b");
+    const careC = res2.suggestedAllocations.find((a) => a.recipientId === "demo-rec-c");
+    expect(hopeB?.allocatedPortions).toBeGreaterThanOrEqual(60);
+    expect(careC?.allocatedPortions).toBeGreaterThanOrEqual(40);
+
+    // Step 14 & 15: Switch ALL NGOs offline
+    const recsAllOffline = recs.map((r) => ({ ...r, isOnline: false, status: "offline" as const }));
+    const resAllOffline = runRelayMatch(don350, recsAllOffline, DEFAULT_WEIGHTS, now);
+    expect(resAllOffline.allocatedPortions).toBe(0);
+    expect(resAllOffline.unallocatedPortions).toBe(350);
+
+    // Step 16 & 17: Bring one eligible NGO online with capacity of 60 portions (Helping Hands D)
+    const recsOnlyD = recs.map((r) =>
+      r.id === "demo-rec-d"
+        ? {
+            ...r,
+            isOnline: true,
+            status: "online" as const,
+            availableCapacity: 60,
+            remainingDemand: 60,
+            storageCapabilities: ["ambient", "heated"] as any,
+          }
+        : { ...r, isOnline: false, status: "offline" as const }
+    );
+
+    const resSingleD = runRelayMatch(don350, recsOnlyD, DEFAULT_WEIGHTS, now);
+    // It must receive exactly 60 portions, and exactly 290 remain unallocated (350 - 60 = 290)
+    expect(resSingleD.allocatedPortions).toBe(60);
+    expect(resSingleD.unallocatedPortions).toBe(290);
+    expect(resSingleD.suggestedAllocations[0].recipientId).toBe("demo-rec-d");
+    expect(resSingleD.suggestedAllocations[0].allocatedPortions).toBe(60);
+  });
 });

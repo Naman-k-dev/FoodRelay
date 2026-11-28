@@ -264,17 +264,18 @@ The application will be accessible at `http://localhost:3000`.
 
 ## 10. Automated Test Verification
 
-All automated unit and integration tests pass with zero errors (80 tests across 12 test suites):
+All automated unit and integration tests pass with zero errors (106 tests across 13 test suites):
 
 ```bash
 $ npm test
 
  RUN  v3.2.7
 
+ ✓ tests/reactive_redistribution_and_multipage.test.ts (25 tests)
  ✓ tests/round2_interactive_demo.test.ts (24 tests)
  ✓ tests/matching.test.ts (8 tests)
  ✓ tests/safety.test.ts (8 tests)
- ✓ tests/demo_browser_flow.test.ts (7 tests)
+ ✓ tests/demo_browser_flow.test.ts (8 tests)
  ✓ tests/invariants.test.ts (6 tests)
  ✓ tests/digital_twin_and_benchmarks.test.ts (5 tests)
  ✓ tests/phase4_ai_schemas.test.ts (5 tests)
@@ -284,30 +285,34 @@ $ npm test
  ✓ tests/dispatch.test.ts (4 tests)
  ✓ tests/analytics.test.ts (1 test)
 
- Test Files  12 passed (12)
-      Tests  80 passed (80)
-   Duration  364ms
+ Test Files  13 passed (13)
+      Tests  106 passed (106)
+   Duration  412ms
 ```
 
 See [docs/QUALITY_REPORT.md](file:///Users/naman/Documents/ANTIGRAVITY%20/DEVELOPMENT/FoodRelay/docs/QUALITY_REPORT.md) for the full Phase 6 Quality Optimization, WCAG 2.2 AA accessibility audit, security hardening matrix, and Requirements Traceability Matrix.
 
 ---
 
-## 11. Interactive Judge Demonstration (`/demo`)
+## 11. Interactive Judge Demonstration (`/demo` and `/demo/live/*`)
 
-FoodRelay AI provides two dedicated evaluation environments at `/demo`:
+FoodRelay AI provides an interconnected presentation experience designed for Round 2 live evaluation:
 
-### A. Live Interactive Playground (Round 2 Command Center)
-- **Non-Negotiable Offline NGO Rule**: Offline NGOs are strictly excluded at domain constraint level and receive **0 portions**. Toggling an NGO offline immediately redistributes food to active partners.
-- **Dynamic 6 NGO Grid**: Live control cards for Community Kitchen A, Hope Shelter B, Care Centre C, Helping Hands D, Sunrise Foundation E (offline), and Community Support F (no transport).
-- **Sankey-Style Flow Visualizer**: Live SVG connector paths linking donation surplus $\rightarrow$ RelayMatch engine $\rightarrow$ recipient organizations, featuring an **Unallocated Surplus** bar when surplus exceeds capacity.
-- **Natural Language Intake**: Supports English, Hindi, and Hinglish with live Gemini extraction, offline regex fallback, non-food warning detection, and multi-item tracking.
-- **Editable Donation Controls**: Stepper buttons (+/- 10, +/- 50), 6 presets (50, 100, 180, 250, 500, 1000), categories, packaging, storage, and FSSAI 2019 checklist.
-- **9 One-Click Scenarios**: Scenarios A through I for instant stress testing (e.g. Scenario H: All NGOs offline $\rightarrow$ 100% unallocated surplus).
-- **Presentation Mode**: Fullscreen, high-contrast, projector-optimized display for live hackathon stages.
-- **Traceable Handover & QR**: Dispatch progression (`Reserved` $\rightarrow$ `Accepted` $\rightarrow$ `Collected` $\rightarrow$ `Delivered`) generating digital verification receipts and tamper-evident QR codes.
+### A. Dedicated 7-Stage Multi-Page Presentation Flow (`/demo/live/*`)
+- **Shared Authoritative Session (`DemoSessionContext`)**: Every page accesses a unified, reactive state synced automatically with LocalStorage (`foodrelay_demo_session_v2`).
+- **Page 1: Donation Intake (`/demo/live/intake`)**: Unconstrained natural-language entry in English, Hindi, and Hinglish with live Gemini extraction, offline regex fallback, non-food detection, multi-item tracking, and quantity stepper presets (50 to 1000).
+- **Page 2: Safety Gate (`/demo/live/review`)**: FSSAI 2019 surplus food rules checklist, AI Smart Review audit, and simulated human coordinator sign-off before matching eligibility.
+- **Page 3: NGO Network (`/demo/live/network`)**: Interactive cards for the 6 fictional NGOs + custom NGO creation, real-time urgency selection, online/offline toggles, and network telemetry.
+- **Page 4: Intelligent Matching (`/demo/live/matching`)**: 3-column Sankey flow visualizer, unallocated surplus bar, 9 one-click scenarios (A–I), explainable multi-factor scoring table, and **automatic reactive redistribution** when an NGO goes offline.
+- **Page 5: Rescue Digital Twin (`/demo/live/digital-twin`)**: Zero-mutation operational shock sandbox simulating surplus spikes, transport failure, and emergency capacity with live Recharts delta comparison.
+- **Page 6: Dispatch & Handover (`/demo/live/dispatch`)**: Guarded state machine (`Reserved` $\rightarrow$ `Accepted` $\rightarrow$ `Collected` $\rightarrow$ `Delivered`), disrupted reservation alerts with one-click "Resolve & Redistribute", and verifiable QR handover vouchers.
+- **Page 7: Impact Analytics (`/demo/live/impact`)**: Real-time carbon diversion (kg CO2e), meals rescued, bio-waste avoided, AI impact intelligence, and session JSON export.
 
-### B. Guided 2-Minute Walkthrough
+### B. Reactive Redistribution Engine & Disruption Handling
+- **Non-Negotiable Offline Constraint**: Offline NGOs are strictly excluded at domain constraint level and receive **0 portions**.
+- **Automatic Food Redistribution**: When an NGO goes offline, its uncommitted allocated portions are immediately released and redistributed to active eligible partners up to their remaining demand and capacity.
+- **Operational Disruption Guard**: If an NGO goes offline after reservation confirmation, the reservation is flagged as disrupted, progression is halted, and a one-click "Resolve & Redistribute" action frees portions for active shelters.
+- **Presentation Mode**: Fullscreen, high-contrast, projector-optimized display mode.
 Evaluators can also step through the 8-stage guided tour:
 1. **The Problem**: 180 surplus vegetarian meals in Greenfield Canteen.
 2. **AI Intake**: Gemini extraction with evidence citation.
