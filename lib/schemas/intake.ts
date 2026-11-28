@@ -29,6 +29,13 @@ export const ExtractedDraftSchema = z.object({
   ambiguousFields: z.array(z.string()).default([]),
   followUpQuestions: z.array(z.string()).default([]),
   evidence: z.record(z.string()).default({}),
+  foodItems: z.array(z.object({
+    name: z.string(),
+    quantity: z.number(),
+    unit: z.string(),
+  })).optional().default([]),
+  isFoodRelated: z.boolean().optional().default(true),
+  unrelatedExplanation: z.string().nullable().optional(),
 });
 
 export type ExtractedDraft = z.infer<typeof ExtractedDraftSchema>;

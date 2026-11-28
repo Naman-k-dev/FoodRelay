@@ -77,13 +77,15 @@ FoodRelay AI was designed with inclusive social impact at its core. In Phase 6, 
 
 ## 5. Automated Test Suite Breakdown (100% Pass Rate)
 
-FoodRelay AI features 10 comprehensive Vitest test suites comprising **49 individual automated test cases** that execute in under 400 milliseconds.
+FoodRelay AI features 12 comprehensive Vitest test suites comprising **80 individual automated test cases** that execute in under 400 milliseconds.
 
 ```
  RUN  v3.2.7 FoodRelay AI Test Runner
 
- ✓ tests/safety.test.ts (8 tests)
+ ✓ tests/round2_interactive_demo.test.ts (24 tests)
  ✓ tests/matching.test.ts (8 tests)
+ ✓ tests/safety.test.ts (8 tests)
+ ✓ tests/demo_browser_flow.test.ts (7 tests)
  ✓ tests/invariants.test.ts (6 tests)
  ✓ tests/digital_twin_and_benchmarks.test.ts (5 tests)
  ✓ tests/phase4_ai_schemas.test.ts (5 tests)
@@ -93,9 +95,9 @@ FoodRelay AI features 10 comprehensive Vitest test suites comprising **49 indivi
  ✓ tests/dispatch.test.ts (4 tests)
  ✓ tests/analytics.test.ts (1 test)
 
- Test Files  10 passed (10)
-      Tests  49 passed (49)
-   Duration  367ms
+ Test Files  12 passed (12)
+      Tests  80 passed (80)
+   Duration  364ms
 ```
 
 ### Invariant & Property Tests Added in Phase 6:
@@ -126,10 +128,46 @@ Per hackathon quality guidelines:
 
 ---
 
-## 7. Verification Verification Summary
+## 7. Verification Summary
 
 - **TypeScript Compilation**: `npx tsc --noEmit` $\rightarrow$ **0 errors (Clean)**
 - **Linting & Code Quality**: `npm run lint` $\rightarrow$ **0 errors, 0 warnings (Clean)**
-- **Automated Tests**: `npx vitest run` $\rightarrow$ **10/10 test files passed, 49/49 tests passed (Clean)**
-- **Production Build**: `npm run build` $\rightarrow$ **Compiled successfully, 100% static/dynamic routes valid**
-- **Git State**: Single branch `main`, 0 uncommitted secrets, repository size < 10 MB.
+- **Automated Tests**: `npx vitest run` $\rightarrow$ **12/12 test files passed, 80/80 tests passed (100% Clean in < 500ms)**
+- **Production Build**: `npm run build` $\rightarrow$ **Compiled successfully, 20/20 static/dynamic routes valid**
+- **Repository Size**: **~770 KiB** (verified with `git count-objects -vH`, strictly < 10 MB)
+- **Git State**: Single branch `main`, 0 uncommitted secrets.
+
+---
+
+## 8. Round 2 Live Demonstration & Offline NGO Availability Architecture
+
+In Round 2, FoodRelay AI introduces a dedicated **Live Playground** alongside the **Guided Walkthrough**, engineered specifically for live judge interaction:
+
+### A. Non-Negotiable Offline NGO Rule
+- **Hard Domain Constraint**: If any recipient is marked `offline`, `unavailable`, `inactive`, or has `isOnline: false`, it is strictly filtered during hard constraint evaluation in Stage B of the RelayMatch engine.
+- **Absolute 0 Allocation Guarantee**: Under no circumstances (including Critical Urgency 100) does an offline NGO receive any portion allocation (`match.suggestedPortions === 0`).
+- **Dynamic Re-routing**: Switching an NGO offline immediately invalidates uncommitted proposals, redistributes portions across online compatible partners, and explicitly surfaces any unabsorbed portions in the Unallocated Surplus bar.
+
+### B. 6 Fictional Demonstration NGOs
+1. **Community Kitchen A**: Urgency Critical (100), Demand 100, Capacity 80, Distance 2.5 km, Status Online.
+2. **Hope Shelter B**: Urgency High (75), Demand 100, Capacity 100, Distance 4.2 km, Status Online.
+3. **Care Centre C**: Urgency Medium (50), Demand 120, Capacity 120, Distance 1.8 km, Status Online.
+4. **Helping Hands D**: Urgency Low (25), Demand 60, Capacity 60, Distance 6.5 km, Status Online.
+5. **Sunrise Foundation E**: Urgency Critical (100), Demand 150, Capacity 150, Distance 3.1 km, **Status Offline**.
+6. **Community Support F**: Urgency High (75), Demand 90, Capacity 90, Distance 5.0 km, Status Online, **Transport Unavailable**.
+
+### C. 9 Interactive Evaluation Scenarios (One-Click Presets)
+- **Scenario A (Normal Rescue)**: Baseline 180-portion vegetarian surplus matched to online partners.
+- **Scenario B (Critical Hunger Demand)**: Urgency shifted to Critical for Care Centre C; ranking updates instantly.
+- **Scenario C (NGO Goes Offline)**: Community Kitchen A toggles offline; 0 portions allocated, portions re-routed.
+- **Scenario D (Capacity Shortage)**: 250 portions with 120 total capacity; 120 allocated, exactly 130 unallocated.
+- **Scenario E (Transport Failure)**: Hope Shelter B transport disabled; excluded from matching.
+- **Scenario F (Dietary Mismatch)**: Non-vegetarian donation paired with vegetarian shelters; strict exclusion.
+- **Scenario G (Food Safety Blocker)**: Loose packaging or missing coordinator sign-off halts matching.
+- **Scenario H (No NGOs Available)**: All NGOs offline; zero allocated, 100% unallocated surplus.
+- **Scenario I (Large Event)**: 1000 portions absorbed up to network capacity limits.
+
+### D. Presentation Mode
+- Dedicated high-contrast projector layout (`isPresentationMode`).
+- Maximizes screen space, increases font size, and highlights real-time portion flows without distracting navigation bars.
+

@@ -264,15 +264,17 @@ The application will be accessible at `http://localhost:3000`.
 
 ## 10. Automated Test Verification
 
-All automated unit tests pass with zero errors:
+All automated unit and integration tests pass with zero errors (80 tests across 12 test suites):
 
 ```bash
 $ npm test
 
  RUN  v3.2.7
 
- ✓ tests/safety.test.ts (8 tests)
+ ✓ tests/round2_interactive_demo.test.ts (24 tests)
  ✓ tests/matching.test.ts (8 tests)
+ ✓ tests/safety.test.ts (8 tests)
+ ✓ tests/demo_browser_flow.test.ts (7 tests)
  ✓ tests/invariants.test.ts (6 tests)
  ✓ tests/digital_twin_and_benchmarks.test.ts (5 tests)
  ✓ tests/phase4_ai_schemas.test.ts (5 tests)
@@ -282,27 +284,39 @@ $ npm test
  ✓ tests/dispatch.test.ts (4 tests)
  ✓ tests/analytics.test.ts (1 test)
 
- Test Files  10 passed (10)
-      Tests  49 passed (49)
-   Duration  367ms
+ Test Files  12 passed (12)
+      Tests  80 passed (80)
+   Duration  364ms
 ```
 
 See [docs/QUALITY_REPORT.md](file:///Users/naman/Documents/ANTIGRAVITY%20/DEVELOPMENT/FoodRelay/docs/QUALITY_REPORT.md) for the full Phase 6 Quality Optimization, WCAG 2.2 AA accessibility audit, security hardening matrix, and Requirements Traceability Matrix.
 
 ---
 
-## 11. Guided Judge Demonstration (`/demo`)
+## 11. Interactive Judge Demonstration (`/demo`)
 
-Evaluators can execute the guided **2-Minute Demo**:
-1. Click **"Experience FoodRelay — 2 Minute Demo"** on the landing page header.
-2. **Step 1: The Problem**: Greenfield College Canteen has 180 surplus vegetarian meal portions.
-3. **Step 2: AI Intake**: Run live Gemini extraction or offline sample. Inspect evidence excerpts and missing fields.
-4. **Step 3: Responsible AI**: Verify that missing temperature records halt matching; perform simulated FSSAI 2019 coordinator sign-off.
-5. **Step 4: Intelligent Matching**: Execute RelayMatch. Inspect 0–100 scores and excluded recipients.
-6. **Step 5: Visual Food Flow**: Observe portion allocation split (80 portions to Shelter A, 60 portions to Shelter B, 40 portions to Shelter C).
-7. **Step 6: Rescue Digital Twin**: Simulate operational disruption by toggling a shelter offline; watch allocations re-balance instantly, then restore the scenario.
-8. **Step 7: Confirm & Dispatch**: Progress through audited transitions (`Reserved` $\rightarrow$ `Accepted` $\rightarrow$ `Collected` $\rightarrow$ `Delivered`) and preview the digital QR receipt.
-9. **Step 8: Impact Reveal**: Review final metrics (+180 meals, 450 kg CO2e diverted, 0 unallocated waste).
+FoodRelay AI provides two dedicated evaluation environments at `/demo`:
+
+### A. Live Interactive Playground (Round 2 Command Center)
+- **Non-Negotiable Offline NGO Rule**: Offline NGOs are strictly excluded at domain constraint level and receive **0 portions**. Toggling an NGO offline immediately redistributes food to active partners.
+- **Dynamic 6 NGO Grid**: Live control cards for Community Kitchen A, Hope Shelter B, Care Centre C, Helping Hands D, Sunrise Foundation E (offline), and Community Support F (no transport).
+- **Sankey-Style Flow Visualizer**: Live SVG connector paths linking donation surplus $\rightarrow$ RelayMatch engine $\rightarrow$ recipient organizations, featuring an **Unallocated Surplus** bar when surplus exceeds capacity.
+- **Natural Language Intake**: Supports English, Hindi, and Hinglish with live Gemini extraction, offline regex fallback, non-food warning detection, and multi-item tracking.
+- **Editable Donation Controls**: Stepper buttons (+/- 10, +/- 50), 6 presets (50, 100, 180, 250, 500, 1000), categories, packaging, storage, and FSSAI 2019 checklist.
+- **9 One-Click Scenarios**: Scenarios A through I for instant stress testing (e.g. Scenario H: All NGOs offline $\rightarrow$ 100% unallocated surplus).
+- **Presentation Mode**: Fullscreen, high-contrast, projector-optimized display for live hackathon stages.
+- **Traceable Handover & QR**: Dispatch progression (`Reserved` $\rightarrow$ `Accepted` $\rightarrow$ `Collected` $\rightarrow$ `Delivered`) generating digital verification receipts and tamper-evident QR codes.
+
+### B. Guided 2-Minute Walkthrough
+Evaluators can also step through the 8-stage guided tour:
+1. **The Problem**: 180 surplus vegetarian meals in Greenfield Canteen.
+2. **AI Intake**: Gemini extraction with evidence citation.
+3. **Safety Gate**: Mandatory FSSAI 2019 human-in-the-loop coordinator approval.
+4. **Intelligent Matching**: Constraint-aware multi-factor ranking.
+5. **Visual Food Flow**: Proportional allocation split.
+6. **Rescue Digital Twin**: Live shock simulation and re-balancing.
+7. **Traceable Dispatch**: QR voucher generation.
+8. **Impact Metrics**: Meals saved, CO2 diverted, zero unallocated waste.
 
 ---
 

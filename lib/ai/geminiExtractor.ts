@@ -78,7 +78,10 @@ Please respond ONLY with a valid JSON object matching this schema:
   "missingFields": string[],
   "ambiguousFields": string[],
   "followUpQuestions": string[],
-  "evidence": Record<string, string>
+  "evidence": Record<string, string>,
+  "foodItems": [{"name": string, "quantity": number, "unit": string}],
+  "isFoodRelated": boolean,
+  "unrelatedExplanation": string or null
 }`;
 
   const timeoutMs = parseInt(process.env.AI_REQUEST_TIMEOUT_MS || "12000", 10);

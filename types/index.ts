@@ -114,13 +114,18 @@ export type RecipientType =
 export type UrgencyLevel =
   | 'critical'
   | 'high'
+  | 'medium'
   | 'moderate'
   | 'low';
 
 export type TransportAvailability =
   | 'self_pickup'
   | 'delivery_only'
-  | 'flexible';
+  | 'flexible'
+  | 'unavailable'
+  | 'none';
+
+export type RecipientStatus = 'online' | 'offline' | 'unavailable' | 'active' | 'inactive';
 
 export interface Recipient {
   id: string;
@@ -144,6 +149,12 @@ export interface Recipient {
   receivingWindowEnd: string; // ISO
   verificationStatus: 'verified_ngo' | 'simulated_verified' | 'pending';
   isDemo: boolean;
+  status?: RecipientStatus;
+  isOnline?: boolean;
+  transportAvailable?: boolean;
+  manualDistanceKm?: number;
+  alreadyReservedPortions?: number;
+  receivingAvailability?: boolean | 'available' | 'unavailable' | 'offline';
 }
 
 export type AllocationStatus =

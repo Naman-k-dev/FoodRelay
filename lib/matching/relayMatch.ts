@@ -67,6 +67,30 @@ export function runRelayMatch(
   for (const recipient of recipients) {
     const ineligibleReasons: string[] = [];
 
+    // Constraint 0: Recipient Online & Operational Availability (HARD DOMAIN CONSTRAINT)
+    const isOffline =
+      recipient.status === "offline" ||
+      recipient.status === "unavailable" ||
+      recipient.status === "inactive" ||
+      recipient.isOnline === false ||
+      recipient.receivingAvailability === false ||
+      recipient.receivingAvailability === "unavailable" ||
+      recipient.receivingAvailability === "offline";
+
+    if (isOffline) {
+      ineligibleReasons.push("Recipient is currently offline and unable to receive food donations.");
+    }
+
+    // Constraint 0B: Transport Availability
+    const isTransportUnavailable =
+      recipient.transportAvailable === false ||
+      recipient.transportAvailability === "unavailable" ||
+      recipient.transportAvailability === "none";
+
+    if (isTransportUnavailable) {
+      ineligibleReasons.push("Transportation is unavailable for this recipient organization.");
+    }
+
     // Constraint 1: Remaining Demand
     if (recipient.remainingDemand <= 0) {
       ineligibleReasons.push("Recipient has no remaining meal demand.");
@@ -140,13 +164,16 @@ export function runRelayMatch(
       ineligibleReasons.push("Recipient geographic coordinates are missing or invalid.");
     }
 
-    // Calculate Straight-line Distance
-    const distanceKm = calculateHaversineDistanceKm(
-      donation.latitude,
-      donation.longitude,
-      recipient.latitude,
-      recipient.longitude
-    );
+    // Calculate Straight-line Distance (uses manualDistanceKm if explicitly configured)
+    const distanceKm =
+      typeof recipient.manualDistanceKm === "number" && !isNaN(recipient.manualDistanceKm)
+        ? recipient.manualDistanceKm
+        : calculateHaversineDistanceKm(
+            donation.latitude,
+            donation.longitude,
+            recipient.latitude,
+            recipient.longitude
+          );
 
     // Max service radius limit: 35 km
     if (distanceKm > 35) {
@@ -193,6 +220,26 @@ export function runRelayMatch(
   for (const match of eligibleMatches) {
     if (remainingDonationPortions <= 0) break;
 
+    // Hard Constraint Safeguard: Offline or transport-unavailable recipient NEVER receives new allocations
+    const isOffline =
+      match.recipient.status === "offline" ||
+      match.recipient.status === "unavailable" ||
+      match.recipient.status === "inactive" ||
+      match.recipient.isOnline === false ||
+      match.recipient.receivingAvailability === false ||
+      match.recipient.receivingAvailability === "unavailable" ||
+      match.recipient.receivingAvailability === "offline";
+
+    const isTransportUnavailable =
+      match.recipient.transportAvailable === false ||
+      match.recipient.transportAvailability === "unavailable" ||
+      match.recipient.transportAvailability === "none";
+
+    if (isOffline || isTransportUnavailable) {
+      match.suggestedPortions = 0;
+      continue;
+    }
+
     // Minimum of: remaining donation, recipient demand, recipient available capacity (whole integer portions)
     const allocatable = Math.floor(
       Math.min(
@@ -213,7 +260,14 @@ export function runRelayMatch(
         distanceKm: match.distanceKm,
         score: match.score,
       });
+    } else {
+      match.suggestedPortions = 0;
     }
+  }
+
+  // Strictly enforce that all ineligible candidates have zero suggested portions
+  for (const match of ineligibleMatches) {
+    match.suggestedPortions = 0;
   }
 
   const totalAllocated = donation.remainingQuantity - remainingDonationPortions;
@@ -245,13 +299,14 @@ function calculateScoreBreakdown(
   weights: MatchingWeights
 ): { breakdown: ScoreBreakdown; finalScore: number } {
   // 1. Urgency Score (0 - 100)
-  const urgencyMap = {
+  const urgencyMap: Record<string, number> = {
     critical: 100,
     high: 75,
+    medium: 50,
     moderate: 50,
     low: 25,
   };
-  const urgencyScore = urgencyMap[recipient.urgencyLevel] || 50;
+  const urgencyScore = urgencyMap[recipient.urgencyLevel] ?? 50;
 
   // 2. Proximity Score (0 - 100)
   // Linear decay up to 30km: 0km = 100, 15km = 50, >= 30km = 0
