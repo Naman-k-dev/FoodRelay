@@ -3,39 +3,134 @@
 @tailwind utilities;
 
 :root {
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
   --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --foreground-rgb: 23, 36, 28;
-  --background-rgb: 247, 248, 242;
+  --font-mono: 'JetBrains Mono', 'Geist Mono', monospace;
+
+  /* LIGHT THEME (Warm Porcelain Canvas, Minimal Elevation, Clean Typography) */
+  --bg-primary: #FAF9F6;              /* Warm Porcelain */
+  --bg-canvas: #FAF9F6;
+  --bg-canvas-subtle: #F3F1EC;
+  --bg-surface: #FFFFFF;              /* Crisp White Surface */
+  --bg-surface-elevated: #FFFFFF;
+  --bg-card: #FFFFFF;
+  --bg-panel: #FFFFFF;
+  --bg-panel-elevated: #FFFFFF;
+  --bg-panel-muted: #F5F3EF;
+  
+  --studio-surface: #FFFFFF;
+  --studio-surface-elevated: #FFFFFF;
+  --studio-border: #E8E5DF;
+  --studio-border-subtle: #F0EDE8;
+  
+  --text-primary: #141417;            /* Obsidian Primary Text */
+  --studio-text-primary: #141417;
+  --text-secondary: #52525B;          /* Muted Zinc Secondary */
+  --studio-text-secondary: #52525B;
+  --text-muted: #71717A;              /* Subtle Silver / Zinc */
+  --studio-text-muted: #71717A;
+  
+  --border-subtle: #E8E5DF;
+  --border-card: #E8E5DF;
+  
+  /* Intentional Semantic Accents */
+  --accent-brand: #FF7849;            /* Tangerine */
+  --accent-warm: #FF7849;
+  --accent-ai: #635BFF;               /* Electric Indigo */
+  --accent-success: #16856B;          /* Jade */
+  --accent-alert: #EF4444;            /* Red */
+  --accent-caution: #F59E0B;          /* Amber */
+
+  color-scheme: light;
+}
+
+.dark {
+  /* DARK THEME (Layered Obsidian & Deep Graphite Surfaces, High-Contrast Typography) */
+  --bg-primary: #141417;              /* Obsidian Deep Ground */
+  --bg-canvas: #141417;
+  --bg-canvas-subtle: #1A1A1E;
+  --bg-surface: #1E1E22;              /* Layered Graphite Surface */
+  --bg-surface-elevated: #28282D;
+  --bg-card: #1E1E22;
+  --bg-panel: #1E1E22;
+  --bg-panel-elevated: #28282D;
+  --bg-panel-muted: #242429;
+  
+  --studio-surface: #1E1E22;
+  --studio-surface-elevated: #28282D;
+  --studio-border: #2E2E34;
+  --studio-border-subtle: #24242A;
+  
+  --text-primary: #FAF9F6;            /* Warm Porcelain */
+  --studio-text-primary: #FAF9F6;
+  --text-secondary: #A1A1AA;          /* Silver / Zinc 400 */
+  --studio-text-secondary: #A1A1AA;
+  --text-muted: #71717A;              /* Zinc 500 */
+  --studio-text-muted: #71717A;
+  
+  --border-subtle: #2E2E34;
+  --border-card: #2E2E34;
+  
+  --accent-brand: #FF7849;            /* Tangerine */
+  --accent-warm: #FF7849;
+  --accent-ai: #7B75FF;               /* Electric Indigo Accessible Light */
+  --accent-success: #1EA484;          /* Jade Accessible Light */
+  --accent-alert: #F87171;            /* Red Light */
+  --accent-caution: #FBBF24;          /* Amber Light */
+
+  color-scheme: dark;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background-color: rgb(var(--background-rgb));
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
-/* Custom scrollbars */
+/* Precision scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+  background: #D4D4D8;
+  border-radius: 9999px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #3F3F46;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #A1A1AA;
 }
 
-/* Leaflet map styles */
-.leaflet-container {
-  width: 100%;
-  height: 100%;
-  border-radius: 0.75rem;
-  z-index: 10;
+/* Tabular figures for numbers, logs and metrics */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Linear & Stripe Style Fine Borders & Dividers */
+.studio-divider {
+  border-color: var(--studio-border);
+}
+
+.studio-panel {
+  background-color: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+}
+
+.studio-panel-elevated {
+  background-color: var(--studio-surface-elevated);
+  border: 1px solid var(--studio-border);
+}
+
+/* Focus styles meeting WCAG 2.2 AA */
+:focus-visible {
+  outline: 2px solid var(--accent-brand);
+  outline-offset: 2px;
 }

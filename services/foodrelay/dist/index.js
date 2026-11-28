@@ -1038,6 +1038,75 @@ function getActorFromContext(fallbackActor = "AI_Agent_Coordinator") {
   return fallbackActor;
 }
 __name(getActorFromContext, "getActorFromContext");
+function parseJsonInput(input) {
+  if (typeof input === "string") {
+    try {
+      return JSON.parse(input);
+    } catch {
+      return input;
+    }
+  }
+  return input;
+}
+__name(parseJsonInput, "parseJsonInput");
+function resolveDonation(input) {
+  const seed = generateFictionalSeedData();
+  let parsed = input;
+  if (typeof input === "string") {
+    try {
+      parsed = JSON.parse(input);
+    } catch {
+      parsed = input;
+    }
+  }
+  if (typeof parsed === "string") {
+    const matched = seed.donations.find((d) => d.id === parsed);
+    if (matched) return { ...matched };
+    parsed = { id: parsed || "don-demo-1" };
+  }
+  if (!parsed || typeof parsed !== "object") {
+    parsed = {};
+  }
+  const baseline = seed.donations[0];
+  const now = /* @__PURE__ */ new Date();
+  const preparedAt = parsed.preparedAt || now.toISOString();
+  const pickupWindowStart = parsed.pickupWindowStart || now.toISOString();
+  const pickupWindowEnd = parsed.pickupWindowEnd || new Date(now.getTime() + 4 * 36e5).toISOString();
+  const confirmedUseBy = parsed.confirmedUseBy || new Date(now.getTime() + 5 * 36e5).toISOString();
+  return {
+    id: parsed.id || baseline.id || "don-demo-1",
+    donorName: parsed.donorName || baseline.donorName || "Grand Celebration Caterers",
+    donorType: parsed.donorType || baseline.donorType || "caterer",
+    foodDescription: parsed.foodDescription || baseline.foodDescription || "180 portions cooked vegetarian meals",
+    foodCategory: parsed.foodCategory || baseline.foodCategory || "cooked_meals",
+    dietaryCategory: parsed.dietaryCategory || baseline.dietaryCategory || "vegetarian",
+    quantity: typeof parsed.quantity === "number" ? parsed.quantity : baseline.quantity || 180,
+    unit: parsed.unit || baseline.unit || "portions",
+    remainingQuantity: typeof parsed.remainingQuantity === "number" ? parsed.remainingQuantity : typeof parsed.quantity === "number" ? parsed.quantity : baseline.remainingQuantity || 180,
+    pickupLocation: parsed.pickupLocation || baseline.pickupLocation || "Sector 62, Noida",
+    latitude: typeof parsed.latitude === "number" ? parsed.latitude : baseline.latitude || 28.628,
+    longitude: typeof parsed.longitude === "number" ? parsed.longitude : baseline.longitude || 77.367,
+    preparedAt,
+    pickupWindowStart,
+    pickupWindowEnd,
+    confirmedUseBy,
+    storageMethod: parsed.storageMethod || baseline.storageMethod || "ambient",
+    packagingCondition: parsed.packagingCondition || baseline.packagingCondition || "sealed_containers",
+    allergenInformation: parsed.allergenInformation || baseline.allergenInformation || [],
+    handlingInformation: parsed.handlingInformation || baseline.handlingInformation || "Store per standard FSSAI temperature controls",
+    sourceVerificationStatus: "verified_license",
+    safetyReviewStatus: parsed.safetyReviewStatus || "eligible_for_matching",
+    safetyReviewNotes: "Verified via FoodRelay AI MCP Agent",
+    safetyReviewer: getActorFromContext(),
+    safetyReviewedAt: now.toISOString(),
+    status: parsed.status || "available",
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
+    isDemo: false,
+    history: []
+  };
+}
+__name(resolveDonation, "resolveDonation");
 class FoodRelayMcpService {
   static {
     __name(this, "FoodRelayMcpService");
@@ -1048,7 +1117,7 @@ class FoodRelayMcpService {
    */
   static getNetworkStatus() {
     const seed = generateFictionalSeedData();
-    return seed.recipients.map((r) => ({
+    const result = seed.recipients.map((r) => ({
       shelterId: r.id,
       organizationName: r.organizationName,
       organizationType: r.organizationType,
@@ -1063,101 +1132,42 @@ class FoodRelayMcpService {
       acceptedDietaryCategories: [...r.acceptedDietaryCategories],
       receivingWindowEnd: r.receivingWindowEnd
     }));
+    return JSON.stringify(result);
   }
   /**
    * Tool 2: Food Safety Gate Evaluation
    * Deterministically validates food donation safety under FSSAI 2019 Surplus Food Regulations.
    */
   static evaluateDonationSafety(donationInput) {
+    const domainDonation = resolveDonation(donationInput);
     const now = /* @__PURE__ */ new Date();
-    const domainDonation = {
-      id: donationInput.id,
-      donorName: donationInput.donorName,
-      donorType: donationInput.donorType || "restaurant",
-      foodDescription: donationInput.foodDescription,
-      foodCategory: donationInput.foodCategory || "cooked_meals",
-      dietaryCategory: donationInput.dietaryCategory || "vegetarian",
-      quantity: donationInput.quantity,
-      unit: donationInput.unit || "portions",
-      remainingQuantity: donationInput.remainingQuantity ?? donationInput.quantity,
-      pickupLocation: donationInput.pickupLocation,
-      latitude: donationInput.latitude,
-      longitude: donationInput.longitude,
-      preparedAt: donationInput.preparedAt,
-      pickupWindowStart: donationInput.pickupWindowStart,
-      pickupWindowEnd: donationInput.pickupWindowEnd,
-      confirmedUseBy: donationInput.confirmedUseBy,
-      storageMethod: donationInput.storageMethod || "ambient",
-      packagingCondition: donationInput.packagingCondition || "sealed_containers",
-      allergenInformation: donationInput.allergenInformation || [],
-      handlingInformation: donationInput.handlingInformation || "Store per standard FSSAI temperature controls",
-      sourceVerificationStatus: "verified_license",
-      safetyReviewStatus: donationInput.safetyReviewStatus || "eligible_for_matching",
-      safetyReviewNotes: "Verified via FoodRelay AI MCP Agent",
-      safetyReviewer: getActorFromContext(),
-      safetyReviewedAt: null,
-      status: donationInput.status || "available",
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
-      isDemo: false,
-      history: []
-    };
     const result = evaluateFoodSafetyGate(domainDonation, now);
-    return {
+    const evaluation = {
       isEligible: result.isEligible,
       status: result.status,
       blockers: [...result.blockers],
       warnings: [...result.warnings],
       regulationReferences: [...result.regulationReferences],
-      summary: result.isEligible ? `PASSED: Donation '${donationInput.id}' meets all FSSAI 2019 surplus food safety regulations.` : `BLOCKED: Donation '${donationInput.id}' failed safety checks: ${result.blockers.join("; ")}`
+      summary: result.isEligible ? `PASSED: Donation '${domainDonation.id}' meets all FSSAI 2019 surplus food safety regulations.` : `BLOCKED: Donation '${domainDonation.id}' failed safety checks: ${result.blockers.join("; ")}`
     };
+    return JSON.stringify(evaluation);
   }
   /**
    * Tool 3: Algorithmic Surplus Matching & Multi-Criteria Allocation
    * Computes deterministic, explainable allocations based on urgency (40%), proximity (30%), demand (20%), readiness (10%).
    */
   static calculateSurplusMatches(donationInput, weightsInput) {
+    const domainDonation = resolveDonation(donationInput);
+    const parsedWeights = weightsInput ? parseJsonInput(weightsInput) : void 0;
     const now = /* @__PURE__ */ new Date();
     const seed = generateFictionalSeedData();
     const recipients = seed.recipients;
-    const weights = weightsInput ? {
-      urgency: weightsInput.urgency,
-      proximity: weightsInput.proximity,
-      demand: weightsInput.demand,
-      readiness: weightsInput.readiness
+    const weights = parsedWeights ? {
+      urgency: parsedWeights.urgency,
+      proximity: parsedWeights.proximity,
+      demand: parsedWeights.demand,
+      readiness: parsedWeights.readiness
     } : DEFAULT_WEIGHTS;
-    const domainDonation = {
-      id: donationInput.id,
-      donorName: donationInput.donorName,
-      donorType: donationInput.donorType || "restaurant",
-      foodDescription: donationInput.foodDescription,
-      foodCategory: donationInput.foodCategory || "cooked_meals",
-      dietaryCategory: donationInput.dietaryCategory || "vegetarian",
-      quantity: donationInput.quantity,
-      unit: donationInput.unit || "portions",
-      remainingQuantity: donationInput.remainingQuantity ?? donationInput.quantity,
-      pickupLocation: donationInput.pickupLocation,
-      latitude: donationInput.latitude,
-      longitude: donationInput.longitude,
-      preparedAt: donationInput.preparedAt,
-      pickupWindowStart: donationInput.pickupWindowStart,
-      pickupWindowEnd: donationInput.pickupWindowEnd,
-      confirmedUseBy: donationInput.confirmedUseBy,
-      storageMethod: donationInput.storageMethod || "ambient",
-      packagingCondition: donationInput.packagingCondition || "sealed_containers",
-      allergenInformation: donationInput.allergenInformation || [],
-      handlingInformation: "Store per standard FSSAI temperature controls",
-      sourceVerificationStatus: "verified_license",
-      safetyReviewStatus: "eligible_for_matching",
-      safetyReviewNotes: "Verified via FoodRelay AI MCP Agent",
-      safetyReviewer: getActorFromContext(),
-      safetyReviewedAt: now.toISOString(),
-      status: "available",
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
-      isDemo: false,
-      history: []
-    };
     const matchResult = runRelayMatch(domainDonation, recipients, weights, now);
     const allocations = matchResult.suggestedAllocations.map((a) => {
       const candidate = matchResult.eligibleMatches.find((c) => c.recipient.id === a.recipientId);
@@ -1178,7 +1188,7 @@ class FoodRelayMcpService {
       recipientName: m.recipient.organizationName,
       reasons: [...m.ineligibleReasons]
     }));
-    return {
+    const evaluation = {
       donationId: matchResult.donationId,
       evaluatedAt: matchResult.evaluatedAt,
       totalPortions: matchResult.totalDonationPortions,
@@ -1188,20 +1198,30 @@ class FoodRelayMcpService {
       ineligibleRecipients,
       notes: [...matchResult.notes]
     };
+    return JSON.stringify(evaluation);
   }
   /**
    * Tool 4: Dynamic Surplus Redistribution upon Shelter Outage
    * Switches an offline shelter out of service and re-evaluates allocations across remaining online shelters.
    */
-  static triggerAutoRedistribution(donationInput, offlineShelterId, weightsInput) {
+  static triggerAutoRedistribution(offlineShelterId, donationInput, weightsInput) {
+    let targetOfflineShelterId = offlineShelterId || "rec-1";
+    let targetDonationInput = donationInput;
+    if (typeof targetOfflineShelterId === "object" || typeof targetOfflineShelterId === "string" && (targetOfflineShelterId.startsWith("{") || targetOfflineShelterId.startsWith("don-"))) {
+      targetDonationInput = targetOfflineShelterId;
+      targetOfflineShelterId = typeof donationInput === "string" && donationInput ? donationInput : "rec-1";
+    }
+    const domainDonation = resolveDonation(targetDonationInput);
+    const parsedWeights = weightsInput ? parseJsonInput(weightsInput) : void 0;
     const now = /* @__PURE__ */ new Date();
     const seed = generateFictionalSeedData();
-    const initialMatch = _FoodRelayMcpService.calculateSurplusMatches(donationInput, weightsInput);
-    const affectedInitial = initialMatch.allocations.find((a) => a.recipientId === offlineShelterId);
+    const initialRaw = FoodRelayMcpService.calculateSurplusMatches(domainDonation, parsedWeights);
+    const initialMatch = JSON.parse(initialRaw);
+    const affectedInitial = initialMatch.allocations.find((a) => a.recipientId === targetOfflineShelterId);
     const releasedPortions = affectedInitial?.allocatedPortions || 0;
-    const offlineName = affectedInitial?.recipientName || offlineShelterId;
+    const offlineName = affectedInitial?.recipientName || targetOfflineShelterId;
     const modifiedRecipients = seed.recipients.map((r) => {
-      if (r.id === offlineShelterId) {
+      if (r.id === targetOfflineShelterId) {
         return {
           ...r,
           status: "offline",
@@ -1211,44 +1231,12 @@ class FoodRelayMcpService {
       }
       return r;
     });
-    const weights = weightsInput ? {
-      urgency: weightsInput.urgency,
-      proximity: weightsInput.proximity,
-      demand: weightsInput.demand,
-      readiness: weightsInput.readiness
+    const weights = parsedWeights ? {
+      urgency: parsedWeights.urgency,
+      proximity: parsedWeights.proximity,
+      demand: parsedWeights.demand,
+      readiness: parsedWeights.readiness
     } : DEFAULT_WEIGHTS;
-    const domainDonation = {
-      id: donationInput.id,
-      donorName: donationInput.donorName,
-      donorType: donationInput.donorType || "restaurant",
-      foodDescription: donationInput.foodDescription,
-      foodCategory: donationInput.foodCategory || "cooked_meals",
-      dietaryCategory: donationInput.dietaryCategory || "vegetarian",
-      quantity: donationInput.quantity,
-      unit: donationInput.unit || "portions",
-      remainingQuantity: donationInput.remainingQuantity ?? donationInput.quantity,
-      pickupLocation: donationInput.pickupLocation,
-      latitude: donationInput.latitude,
-      longitude: donationInput.longitude,
-      preparedAt: donationInput.preparedAt,
-      pickupWindowStart: donationInput.pickupWindowStart,
-      pickupWindowEnd: donationInput.pickupWindowEnd,
-      confirmedUseBy: donationInput.confirmedUseBy,
-      storageMethod: donationInput.storageMethod || "ambient",
-      packagingCondition: donationInput.packagingCondition || "sealed_containers",
-      allergenInformation: donationInput.allergenInformation || [],
-      handlingInformation: "Store per standard FSSAI temperature controls",
-      sourceVerificationStatus: "verified_license",
-      safetyReviewStatus: "eligible_for_matching",
-      safetyReviewNotes: "Verified via FoodRelay AI MCP Agent",
-      safetyReviewer: getActorFromContext(),
-      safetyReviewedAt: now.toISOString(),
-      status: "available",
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
-      isDemo: false,
-      history: []
-    };
     const reResult = runRelayMatch(domainDonation, modifiedRecipients, weights, now);
     const updatedAllocations = reResult.suggestedAllocations.map((a) => {
       const candidate = reResult.eligibleMatches.find((c) => c.recipient.id === a.recipientId);
@@ -1264,8 +1252,8 @@ class FoodRelayMcpService {
         readinessScore: candidate?.scoreBreakdown.readinessScore || 0
       };
     });
-    return {
-      offlineShelterId,
+    const evaluation = {
+      offlineShelterId: targetOfflineShelterId,
       offlineShelterName: offlineName,
       releasedPortions,
       redistributedPortions: reResult.allocatedPortions,
@@ -1273,46 +1261,61 @@ class FoodRelayMcpService {
       updatedAllocations,
       message: `Offline shelter '${offlineName}' released ${releasedPortions} portions. Total redistributed: ${reResult.allocatedPortions} portions; Unallocated surplus: ${reResult.unallocatedPortions} portions.`
     };
+    return JSON.stringify(evaluation);
   }
   /**
    * Tool 5: Dispatch Lifecycle Progression Guard
    * Validates state transitions (proposed -> reserved -> accepted -> ready_for_pickup -> collected -> delivered).
    */
   static advanceDispatchStatus(allocationId, currentStatus, targetStatus, actor, note) {
+    const effectiveAllocId = allocationId || "alloc-101";
+    let effectiveCurrent = currentStatus || "proposed";
+    let effectiveTarget = targetStatus;
+    if (!effectiveTarget) {
+      if (effectiveCurrent !== "proposed") {
+        effectiveTarget = effectiveCurrent;
+        effectiveCurrent = "proposed";
+      } else {
+        effectiveTarget = "reserved";
+      }
+    }
     const check = canTransitionAllocation(
-      currentStatus,
-      targetStatus
+      effectiveCurrent,
+      effectiveTarget
     );
     const now = (/* @__PURE__ */ new Date()).toISOString();
     const effectiveActor = actor || getActorFromContext();
+    const effectiveNote = note || `Status progressed from ${effectiveCurrent} to ${effectiveTarget} via MCP Agent`;
     if (!check.allowed) {
-      return {
-        allocationId,
-        previousStatus: currentStatus,
-        currentStatus,
+      const failedTransition = {
+        allocationId: effectiveAllocId,
+        previousStatus: effectiveCurrent,
+        currentStatus: effectiveCurrent,
         transitionAllowed: false,
         updatedAt: now,
         actor: effectiveActor,
         note: check.reason || "Transition rejected by state machine guard."
       };
+      return JSON.stringify(failedTransition);
     }
     let receiptNumber;
     let qrPayload;
-    if (targetStatus === "delivered") {
+    if (effectiveTarget === "delivered") {
       receiptNumber = `FR-REC-${Date.now().toString().slice(-6)}`;
-      qrPayload = `FOODRELAY:${allocationId}:DELIVERED:${now}`;
+      qrPayload = `FOODRELAY:${effectiveAllocId}:DELIVERED:${now}`;
     }
-    return {
-      allocationId,
-      previousStatus: currentStatus,
-      currentStatus: targetStatus,
+    const successfulTransition = {
+      allocationId: effectiveAllocId,
+      previousStatus: effectiveCurrent,
+      currentStatus: effectiveTarget,
       transitionAllowed: true,
       updatedAt: now,
       actor: effectiveActor,
-      note,
+      note: effectiveNote,
       receiptNumber,
       qrPayload
     };
+    return JSON.stringify(successfulTransition);
   }
   /**
    * Tool 6: Verifiable Digital Dispatch Voucher
@@ -1321,27 +1324,35 @@ class FoodRelayMcpService {
   static generateDispatchVoucher(allocationId, donationId, recipientId, portions, donorName, recipientName) {
     const now = (/* @__PURE__ */ new Date()).toISOString();
     const receiptNum = `FR-VOUCHER-${Date.now().toString().slice(-6)}`;
-    const qrData = `FOODRELAY:VOUCHER:${receiptNum}:${allocationId}:${donationId}:${recipientId}:${portions}PORTIONS`;
-    return {
+    const effectiveAlloc = allocationId || "alloc-101";
+    const effectiveDonId = donationId || "don-demo-1";
+    const effectiveRecId = recipientId || "rec-1";
+    const effectiveDonor = donorName || "Grand Celebration Caterers";
+    const effectiveRecipient = recipientName || "Asha Deep Community Shelter";
+    const numPortions = typeof portions === "string" ? parseInt(portions, 10) || 80 : typeof portions === "number" ? portions : 80;
+    const qrData = `FOODRELAY:VOUCHER:${receiptNum}:${effectiveAlloc}:${effectiveDonId}:${effectiveRecId}:${numPortions}PORTIONS`;
+    const voucher = {
       voucherId: `vch-${Date.now()}`,
       receiptNumber: receiptNum,
-      allocationId,
-      donationId,
-      recipientId,
-      donorName,
-      recipientName,
-      portions,
+      allocationId: effectiveAlloc,
+      donationId: effectiveDonId,
+      recipientId: effectiveRecId,
+      donorName: effectiveDonor,
+      recipientName: effectiveRecipient,
+      portions: numPortions,
       qrPayload: qrData,
       issuedAt: now
     };
+    return JSON.stringify(voucher);
   }
   /**
    * Tool 7: AI Natural Language Surplus Intake Parsing
    * Extracts structured portion counts, meal categories, and shelf-life parameters from unstructured kitchen notes.
    */
   static parseIntakeText(rawText) {
-    const textLower = rawText.toLowerCase();
-    const portionsMatch = textLower.match(/(\d+)\s*(portions?|meals?|servings?|plates?|pax|boxes?|packets?)/i);
+    const text = String(rawText || "");
+    const textLower = text.toLowerCase();
+    const portionsMatch = textLower.match(/(\d+)\s*(?:[a-zA-Z_-]+\s+)*(?:portions?|meals?|servings?|plates?|pax|boxes?|packets?)/i);
     const portions = portionsMatch ? parseInt(portionsMatch[1], 10) : 50;
     let dietaryCategory = "vegetarian";
     if (textLower.includes("jain")) {
@@ -1385,8 +1396,8 @@ class FoodRelayMcpService {
     if (storageMethod === "heated") useByHours = 3;
     if (storageMethod === "refrigerated") useByHours = 24;
     if (storageMethod === "frozen") useByHours = 72;
-    return {
-      foodDescription: rawText.slice(0, 120).trim(),
+    const parsed = {
+      foodDescription: text.slice(0, 120).trim(),
       portions,
       foodCategory,
       dietaryCategory,
@@ -1395,6 +1406,7 @@ class FoodRelayMcpService {
       detectedAllergens,
       summary: `Parsed ${portions} ${dietaryCategory} ${foodCategory} portions (${storageMethod} storage, ${useByHours}h safe window).`
     };
+    return JSON.stringify(parsed);
   }
 };
 // Annotate the CommonJS export names for ESM import in node:

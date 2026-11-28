@@ -12,6 +12,7 @@ import {
   Bot,
   User,
   ShieldCheck,
+  Cpu,
 } from "lucide-react";
 import { CopilotResult } from "@/lib/schemas/copilot";
 
@@ -40,11 +41,10 @@ export function RelayCopilotDrawer({
   >([
     {
       sender: "copilot",
-      text: "Hello Coordinator! I am Relay Copilot. I can inspect current donation queues, explain allocation decisions, and check recipient demand grounded strictly in your live records.",
+      text: "Relay Copilot initialized. I inspect live donation queues, explain allocation decisions, and verify recipient demand grounded in your local database and Graftcode MCP tools.",
     },
   ]);
 
-  // Keyboard shortcut: close on Escape
   React.useEffect(() => {
     if (!isOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -58,9 +58,8 @@ export function RelayCopilotDrawer({
 
   const handleAsk = async (questionText: string) => {
     const q = questionText.trim();
-    if (!q) return;
+    if (!q || isLoading) return;
 
-    // Add user message
     setMessages((prev) => [...prev, { sender: "user", text: q }]);
     setQuery("");
     setIsLoading(true);
@@ -70,21 +69,26 @@ export function RelayCopilotDrawer({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          question: q,
-          context: contextData,
+          query: q,
+          contextData: {
+            donations: contextData.donations || [],
+            recipients: contextData.recipients || [],
+            allocations: contextData.allocations || [],
+          },
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Copilot query failed");
+      if (!res.ok) {
+        throw new Error(`Copilot responded with HTTP ${res.status}`);
+      }
 
-      const copilotData: CopilotResult = data.data;
+      const result: CopilotResult = await res.json();
       setMessages((prev) => [
         ...prev,
         {
           sender: "copilot",
-          text: copilotData.answer,
-          data: copilotData,
+          text: result.summary,
+          data: result,
         },
       ]);
     } catch (err: any) {
@@ -92,7 +96,7 @@ export function RelayCopilotDrawer({
         ...prev,
         {
           sender: "copilot",
-          text: `Apologies, I encountered an error: ${err.message || "Failed to reach copilot service"}.`,
+          text: `Error analyzing query: ${err.message}. Please check connection or retry.`,
         },
       ]);
     } finally {
@@ -101,137 +105,134 @@ export function RelayCopilotDrawer({
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="copilot-drawer-title"
-      className="fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-white shadow-elevation border-l border-gray-100 flex flex-col justify-between"
-    >
-      {/* Top Bar */}
-      <div className="p-4 bg-forest text-white flex items-center justify-between border-b border-forest-light/30">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-emerald text-mint">
-            <Bot className="w-4 h-4 text-white" aria-hidden="true" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 id="copilot-drawer-title" className="font-heading font-extrabold text-sm">
-                Relay Copilot
-              </h3>
-              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-mint text-forest uppercase">
-                Grounded AI
-              </span>
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-sm animate-fadeIn font-sans">
+      <div className="w-full max-w-md bg-panel h-full shadow-elevation border-l border-studio-border flex flex-col">
+        {/* Drawer Header */}
+        <div className="p-3.5 border-b border-studio-border flex items-center justify-between bg-canvas-subtle">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded bg-studio-indigo text-white flex items-center justify-center">
+              <Bot className="w-3.5 h-3.5" />
             </div>
-            <p className="text-[10px] text-cream/70">Read-only operational assistant</p>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <h3 className="font-heading font-semibold text-xs text-studio-text">
+                  Relay Copilot
+                </h3>
+                <span className="text-[9px] font-mono font-medium px-1 py-0.2 rounded bg-studio-indigo/10 text-studio-indigo border border-studio-indigo/20">
+                  GEMINI + MCP
+                </span>
+              </div>
+              <p className="text-[10px] text-studio-text-muted">
+                Operational grounding across local records
+              </p>
+            </div>
           </div>
+          <button
+            onClick={onClose}
+            className="p-1 rounded text-studio-text-muted hover:text-studio-text hover:bg-panel transition"
+            aria-label="Close Copilot"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
-        <button onClick={onClose} className="p-1 rounded-lg hover:bg-forest-light text-cream/80">
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-
-      {/* Message History */}
-      <div className="flex-1 p-4 space-y-3 overflow-y-auto text-xs">
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex items-start gap-2 ${
-              msg.sender === "user" ? "justify-end" : "justify-start"
-            }`}
-          >
-            {msg.sender === "copilot" && (
-              <div className="w-6 h-6 rounded-full bg-forest text-mint flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Bot className="w-3.5 h-3.5" />
-              </div>
-            )}
+        {/* Message Thread */}
+        <div className="flex-1 p-3.5 overflow-y-auto space-y-3 text-xs">
+          {messages.map((m, idx) => (
             <div
-              className={`p-3 rounded-2xl max-w-[85%] leading-relaxed ${
-                msg.sender === "user"
-                  ? "bg-forest text-white"
-                  : "bg-cream text-charcoal border border-gray-100"
+              key={idx}
+              className={`flex gap-2.5 ${
+                m.sender === "user" ? "justify-end" : "justify-start"
               }`}
             >
-              <p>{msg.text}</p>
-
-              {/* Clickable Reference Pills */}
-              {msg.data?.referencedRecordIds && msg.data.referencedRecordIds.length > 0 && (
-                <div className="mt-2 pt-2 border-t border-gray-200/50 flex flex-wrap gap-1.5 items-center">
-                  <span className="text-[10px] font-bold text-forest">Referenced Records:</span>
-                  {msg.data.referencedRecordIds.map((id) => (
-                    <Link
-                      key={id}
-                      href={
-                        id.startsWith("don-")
-                          ? `/donations?highlight=${id}`
-                          : id.startsWith("rec-")
-                          ? `/recipients?highlight=${id}`
-                          : `/dispatch`
-                      }
-                      onClick={onClose}
-                      className="px-2 py-0.5 rounded text-[10px] font-semibold bg-white border border-emerald/30 text-emerald hover:bg-mint transition inline-flex items-center gap-1"
-                    >
-                      {id} <ExternalLink className="w-2.5 h-2.5" />
-                    </Link>
-                  ))}
+              {m.sender === "copilot" && (
+                <div className="w-5 h-5 rounded bg-studio-indigo text-white flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Bot className="w-3 h-3" />
                 </div>
               )}
-            </div>
-          </div>
-        ))}
-
-        {isLoading && (
-          <div className="flex items-center gap-2 text-xs text-charcoal-muted">
-            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-forest" />
-            <span>Consulting application records...</span>
-          </div>
-        )}
-      </div>
-
-      {/* Presets & Input Footer */}
-      <div className="p-4 border-t border-gray-100 bg-cream/30 space-y-3">
-        {/* Quick Question Chips */}
-        <div>
-          <span className="text-[10px] font-bold text-charcoal-muted uppercase tracking-wider block mb-1">
-            Suggested Operational Queries:
-          </span>
-          <div className="flex flex-wrap gap-1">
-            {PRESET_QUESTIONS.map((pq, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleAsk(pq)}
-                className="text-[10px] text-left px-2 py-1 rounded-lg bg-white hover:bg-cream border border-gray-200 text-charcoal font-medium transition"
+              <div
+                className={`max-w-[85%] rounded p-2.5 text-2xs leading-relaxed ${
+                  m.sender === "user"
+                    ? "bg-studio-obsidian dark:bg-studio-graphite text-white font-medium"
+                    : "bg-canvas-subtle border border-studio-border text-studio-text"
+                }`}
               >
-                ✦ {pq}
+                <p>{m.text}</p>
+
+                {/* Structured Insights & Suggestions if returned by API */}
+                {m.data?.actionableSuggestions && m.data.actionableSuggestions.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-studio-border/60 space-y-1">
+                    <span className="text-[10px] font-mono font-semibold text-studio-text-muted uppercase">
+                      Recommended Next Actions:
+                    </span>
+                    {m.data.actionableSuggestions.map((suggestion, aIdx) => (
+                      <div
+                        key={aIdx}
+                        className="p-1 rounded bg-panel border border-studio-border text-[11px] text-studio-text"
+                      >
+                        {suggestion}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {isLoading && (
+            <div className="flex gap-2 items-center text-studio-text-muted text-2xs">
+              <div className="w-4 h-4 border-2 border-studio-indigo border-t-transparent rounded-full animate-spin" />
+              <span>Analyzing records with Gemini reasoning...</span>
+            </div>
+          )}
+        </div>
+
+        {/* Quick Presets */}
+        <div className="px-3.5 py-2 border-t border-studio-border bg-canvas-subtle">
+          <div className="text-[10px] font-mono text-studio-text-muted uppercase mb-1.5">
+            Quick Queries
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {PRESET_QUESTIONS.map((q, i) => (
+              <button
+                key={i}
+                disabled={isLoading}
+                onClick={() => handleAsk(q)}
+                className="text-[11px] px-2 py-0.5 rounded bg-panel border border-studio-border text-studio-text-secondary hover:text-studio-text hover:border-studio-tangerine transition text-left truncate max-w-full disabled:opacity-50"
+              >
+                {q}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Input Field */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleAsk(query);
-          }}
-          className="flex items-center gap-2"
-        >
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Ask Copilot about donations, recipients..."
-            className="flex-1 p-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald/40 bg-white"
-          />
-          <button
-            type="submit"
-            disabled={!query.trim() || isLoading}
-            className="p-2 rounded-xl bg-forest hover:bg-forest-light text-white transition disabled:opacity-40"
+        {/* Input Composer */}
+        <div className="p-3 border-t border-studio-border bg-panel">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleAsk(query);
+            }}
+            className="flex items-center gap-2"
           >
-            <Send className="w-4 h-4" />
-          </button>
-        </form>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Ask Copilot about donations, safety, or shelters..."
+              disabled={isLoading}
+              className="flex-1 bg-canvas-subtle border border-studio-border rounded px-2.5 py-1.5 text-xs text-studio-text placeholder:text-studio-text-muted focus:outline-none focus:border-studio-indigo"
+            />
+            <button
+              type="submit"
+              disabled={!query.trim() || isLoading}
+              className="p-1.5 rounded bg-studio-indigo text-white hover:bg-studio-indigo-hover disabled:opacity-40 transition"
+              aria-label="Send query"
+            >
+              <Send className="w-3.5 h-3.5" />
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/ui/Logo";
+import { ThemeSwitcher } from "@/components/ui/ThemeSwitcher";
+import { CommandPalette } from "@/components/ui/CommandPalette";
 import { useFoodRelay } from "@/lib/storage/useFoodRelay";
 import { RelayCopilotDrawer } from "@/components/ai/RelayCopilotDrawer";
 import {
@@ -20,13 +22,12 @@ import {
   X,
   RotateCcw,
   Sparkles,
-  ShieldAlert,
-  HelpCircle,
   ChevronLeft,
   ChevronRight,
   Check,
   Bot,
   Activity,
+  Command,
 } from "lucide-react";
 
 interface AppShellProps {
@@ -40,452 +41,514 @@ export function AppShell({ children }: AppShellProps) {
   const [guideStepIndex, setGuideStepIndex] = useState(0);
   const [guideViewMode, setGuideViewMode] = useState<"step" | "list">("step");
   const [showCopilot, setShowCopilot] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
   const { donations, recipients, allocations, resetDemo } = useFoodRelay();
 
-  // Count pending reviews
   const pendingSafetyReviews = donations.filter(
     (d) =>
       d.safetyReviewStatus === "awaiting_human_review" ||
       d.safetyReviewStatus === "incomplete_info"
   ).length;
 
-  const navItems = [
-    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { label: "Live Demo", href: "/demo", icon: Sparkles, badge: "90s" },
-    { label: "Intake / Donate", href: "/donate", icon: PlusCircle, badge: "AI" },
+  const navGroups = [
     {
-      label: "Donations",
-      href: "/donations",
-      icon: PackageOpen,
-      count: pendingSafetyReviews > 0 ? pendingSafetyReviews : undefined,
+      group: "Operations",
+      items: [
+        { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
+        { label: "Live Demo", href: "/demo", icon: Sparkles, badge: "90s" },
+        { label: "Intake", href: "/donate", icon: PlusCircle, badge: "AI" },
+        {
+          label: "Safety Gate",
+          href: "/donations",
+          icon: PackageOpen,
+          count: pendingSafetyReviews > 0 ? pendingSafetyReviews : undefined,
+        },
+      ],
     },
-    { label: "Recipients", href: "/recipients", icon: Building2 },
-    { label: "Match Center", href: "/matches", icon: GitCompare },
-    { label: "Digital Twin", href: "/matches?view=digital_twin", icon: Activity, badge: "Sim" },
-    { label: "Rescue Map", href: "/map", icon: MapPin },
-    { label: "Dispatch Board", href: "/dispatch", icon: Truck },
-    { label: "Impact Analytics", href: "/impact", icon: BarChart3 },
-    { label: "About & Safety", href: "/about", icon: Info },
+    {
+      group: "Intelligence",
+      items: [
+        { label: "RelayMatch", href: "/matches", icon: GitCompare },
+        { label: "Digital Twin", href: "/matches?view=digital_twin", icon: Activity, badge: "Sim" },
+        { label: "NGO Network", href: "/recipients", icon: Building2 },
+      ],
+    },
+    {
+      group: "Logistics",
+      items: [
+        { label: "Rescue Map", href: "/map", icon: MapPin },
+        { label: "Dispatch", href: "/dispatch", icon: Truck },
+        { label: "Impact", href: "/impact", icon: BarChart3 },
+        { label: "Safety Matrix", href: "/about", icon: Info },
+      ],
+    },
   ];
 
   const handleResetDemo = () => {
-    if (confirm("Reset application data to fresh fictional demo records?")) {
+    if (confirm("Reset application data to fresh fictional demonstration records?")) {
       resetDemo();
     }
   };
 
-  // Keyboard shortcut: close tour on Escape
-  React.useEffect(() => {
-    if (!showDemoGuide) return;
+  useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShowDemoGuide(false);
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setShowCommandPalette((prev) => !prev);
+      } else if ((e.metaKey || e.ctrlKey) && e.key === "j") {
+        e.preventDefault();
+        setShowCopilot((prev) => !prev);
+      } else if (e.key === "Escape") {
+        setShowDemoGuide(false);
+        setShowCommandPalette(false);
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [showDemoGuide]);
+  }, []);
+
+  const STEPS = [
+    {
+      step: 1,
+      title: "Surplus Food Intake",
+      desc: "Simulate a live wedding surplus intake using Gemini Multilingual extraction with dietary flags.",
+      link: "/donate",
+    },
+    {
+      step: 2,
+      title: "Deterministic Safety Gate",
+      desc: "Observe real-time FSSAI-inspired checklist validation before matching can proceed.",
+      link: "/donations",
+    },
+    {
+      step: 3,
+      title: "Explainable RelayMatch",
+      desc: "Inspect multi-factor scores (distance, dietary alignment, urgency, capacity) and allocation split.",
+      link: "/matches",
+    },
+    {
+      step: 4,
+      title: "Real-Time Digital Twin",
+      desc: "Simulate an NGO drop-out to witness autonomous fallback redistribution within seconds.",
+      link: "/matches?view=digital_twin",
+    },
+    {
+      step: 5,
+      title: "Dispatch Board & Verifiable QR",
+      desc: "Track courier assignment and cryptographic handover verification for end-to-end trust.",
+      link: "/dispatch",
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col">
+    <div className="min-h-screen bg-canvas text-studio-text flex flex-col font-sans transition-colors duration-200">
       {/* WCAG 2.2 Level AA Skip Link */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2.5 focus:bg-forest focus:text-mint focus:font-bold focus:rounded-xl focus:shadow-elevation focus:outline-none focus:ring-2 focus:ring-mint"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-3 focus:py-1.5 focus:bg-studio-obsidian focus:text-white focus:font-semibold focus:rounded-md focus:shadow-elevation focus:outline-none focus:ring-2 focus:ring-studio-tangerine text-xs"
       >
         Skip to main content
       </a>
 
-      {/* Top Demo Disclosure Banner */}
-      <div className="bg-forest-dark text-mint text-xs px-4 py-2 border-b border-forest flex flex-wrap items-center justify-between gap-2 z-50">
+      {/* Top Studio Operations Bar */}
+      <header className="h-11 bg-panel border-b border-studio-border px-3 sm:px-4 flex items-center justify-between text-xs z-30 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <span className="flex h-2 w-2 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-light"></span>
-          </span>
-          <span className="font-medium">
-            FoodRelay Demonstration Prototype · Fictional Noida/Greater Noida Data
+          <Link href="/" className="flex items-center">
+            <Logo size={22} showText={true} />
+          </Link>
+          <span className="hidden md:inline text-studio-border">|</span>
+          <span className="hidden md:flex items-center gap-1.5 text-2xs text-studio-text-muted font-mono">
+            <span className="w-1.5 h-1.5 rounded-full bg-studio-jade animate-pulse" />
+            LIVE REDISTRIBUTION ACTIVE
           </span>
         </div>
-        <div className="flex items-center gap-2.5">
+
+        <div className="flex items-center gap-2">
+          {/* Command Palette Trigger */}
+          <button
+            onClick={() => setShowCommandPalette(true)}
+            className="hidden sm:inline-flex items-center gap-1.5 text-2xs text-studio-text-secondary hover:text-studio-text bg-canvas-subtle px-2 py-1 rounded border border-studio-border transition"
+            title="Search commands (⌘K)"
+          >
+            <Command className="w-3 h-3 text-studio-text-muted" />
+            <span>Search</span>
+            <kbd className="text-[9px] bg-panel px-1 py-0.2 rounded border border-studio-border font-mono">
+              ⌘K
+            </kbd>
+          </button>
+
+          <ThemeSwitcher />
+
           <button
             onClick={() => setShowCopilot(true)}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-emerald hover:bg-emerald-dark px-3 py-1 rounded-xl transition shadow-subtle border border-mint/30"
+            className="inline-flex items-center gap-1 text-2xs font-semibold text-white bg-studio-indigo hover:bg-studio-indigo-hover px-2.5 py-1 rounded transition"
           >
-            <Bot className="w-3.5 h-3.5 text-mint" />
-            Relay Copilot
+            <Bot className="w-3.5 h-3.5 text-white" />
+            <span className="hidden sm:inline">Copilot</span>
           </button>
+
           <Link
             href="/demo"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-forest bg-mint hover:bg-white px-3 py-1 rounded-xl transition shadow-subtle border border-emerald/30 animate-pulse"
+            className="inline-flex items-center gap-1 text-2xs font-semibold text-white bg-studio-tangerine hover:bg-studio-tangerine-hover px-2.5 py-1 rounded transition"
           >
-            <Sparkles className="w-3.5 h-3.5 text-forest" />
-            Interactive Demo
+            <Sparkles className="w-3 h-3 text-white" />
+            <span>Demo</span>
           </Link>
+
           <button
             onClick={handleResetDemo}
-            className="inline-flex items-center gap-1 text-[11px] text-cream/80 hover:text-white px-2 py-1 rounded hover:bg-forest/50 transition"
-            title="Reset store to fresh relative timestamps"
+            className="text-2xs text-studio-text-muted hover:text-studio-text p-1 rounded hover:bg-canvas-subtle transition"
+            title="Reset demo data"
           >
-            <RotateCcw className="w-3 h-3 text-amber" />
-            Reset Demo
+            <RotateCcw className="w-3 h-3" />
+          </button>
+
+          {/* Mobile Menu Hamburger */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="lg:hidden p-1 rounded text-studio-text-secondary hover:bg-canvas-subtle"
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>
         </div>
-      </div>
+      </header>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Desktop Sidebar */}
-        <aside className="hidden lg:flex lg:flex-col w-64 bg-forest text-white border-r border-forest-dark/40 flex-shrink-0">
-          <div className="p-5 border-b border-forest-light/20">
-            <Link href="/" className="block">
-              <Logo size={36} />
-            </Link>
-          </div>
+        {/* Desktop Sidebar — Linear & Vercel Inspired Restraint */}
+        <aside className="hidden lg:flex lg:flex-col w-56 bg-panel border-r border-studio-border flex-shrink-0 select-none">
+          <nav className="flex-1 px-2.5 py-3 space-y-4 overflow-y-auto">
+            {navGroups.map((grp) => (
+              <div key={grp.group} className="space-y-0.5">
+                <div className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-studio-text-muted">
+                  {grp.group}
+                </div>
+                {grp.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive =
+                    pathname === item.href ||
+                    (item.href !== "/dashboard" && pathname?.startsWith(item.href));
 
-          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive =
-                pathname === item.href ||
-                (item.href !== "/dashboard" && pathname?.startsWith(item.href));
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      aria-current={isActive ? "page" : undefined}
+                      className={`flex items-center justify-between px-2 py-1.5 rounded text-xs font-medium transition-colors ${
+                        isActive
+                          ? "bg-canvas-subtle text-studio-text font-semibold border-l-2 border-studio-tangerine -ml-1 pl-2"
+                          : "text-studio-text-secondary hover:bg-canvas-subtle hover:text-studio-text"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Icon
+                          className={`w-3.5 h-3.5 flex-shrink-0 ${
+                            isActive ? "text-studio-tangerine" : "text-studio-text-muted"
+                          }`}
+                          aria-hidden="true"
+                        />
+                        <span className="truncate">{item.label}</span>
+                      </div>
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={isActive ? "page" : undefined}
-                  className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                    isActive
-                      ? "bg-emerald text-white shadow-subtle"
-                      : "text-cream/80 hover:bg-forest-light/40 hover:text-white"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className={`w-4 h-4 ${isActive ? "text-mint" : "text-cream/70"}`} aria-hidden="true" />
-                    <span>{item.label}</span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    {item.badge && (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-mint text-forest tracking-wider uppercase">
-                        {item.badge}
-                      </span>
-                    )}
-                    {item.count !== undefined && (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber text-charcoal">
-                        {item.count}
-                      </span>
-                    )}
-                  </div>
-                </Link>
-              );
-            })}
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {item.badge && (
+                          <span className="px-1 py-0.2 rounded text-[9px] font-mono font-medium bg-canvas-subtle border border-studio-border text-studio-text-muted">
+                            {item.badge}
+                          </span>
+                        )}
+                        {item.count !== undefined && (
+                          <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-studio-tangerine text-white">
+                            {item.count}
+                          </span>
+                        )}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
 
-          {/* Sidebar Footer Callout */}
-          <div className="p-4 m-3 rounded-xl bg-forest-dark/60 border border-emerald/20">
-            <div className="flex items-center gap-2 mb-1.5 text-xs font-semibold text-mint">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>PromptWars Hackathon</span>
-            </div>
-            <p className="text-[11px] text-cream/70 leading-relaxed mb-3">
-              Multilingual AI intake, explainable allocation & safety gate for surplus food rescue.
-            </p>
+          {/* Quick Rescue Button in Sidebar */}
+          <div className="p-2.5 border-t border-studio-border bg-panel">
             <Link
               href="/donate"
-              className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-emerald hover:bg-emerald-dark text-white transition shadow-subtle"
+              className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold rounded bg-studio-obsidian dark:bg-studio-graphite text-white hover:bg-studio-tangerine transition"
             >
               <PlusCircle className="w-3.5 h-3.5" />
-              New Donation
+              <span>Record Surplus</span>
             </Link>
           </div>
         </aside>
 
-        {/* Mobile Header & Content */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-          {/* Mobile Top Bar */}
-          <header className="lg:hidden bg-forest text-white px-4 py-3 flex items-center justify-between border-b border-forest-light/20">
-            <Link href="/">
-              <Logo size={28} />
-            </Link>
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-1.5 rounded-lg text-cream/90 hover:bg-forest-light transition"
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </header>
+        {/* Mobile Navigation Drawer */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden fixed inset-x-0 top-11 z-40 bg-panel border-b border-studio-border px-3 py-3 space-y-3 shadow-elevation">
+            {navGroups.map((grp) => (
+              <div key={grp.group} className="space-y-0.5">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-studio-text-muted px-2">
+                  {grp.group}
+                </div>
+                {grp.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href;
 
-          {/* Mobile Drawer */}
-          {mobileMenuOpen && (
-            <div className="lg:hidden bg-forest text-white border-b border-forest-dark/50 px-4 py-3 space-y-1">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center justify-between px-2.5 py-1.5 rounded text-xs ${
+                        isActive
+                          ? "bg-canvas-subtle text-studio-tangerine font-semibold"
+                          : "text-studio-text-secondary hover:bg-canvas-subtle"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Icon className="w-4 h-4" />
+                        <span>{item.label}</span>
+                      </div>
+                      {item.count !== undefined && (
+                        <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-studio-tangerine text-white">
+                          {item.count}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        )}
 
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    aria-current={isActive ? "page" : undefined}
-                    className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium ${
-                      isActive ? "bg-emerald text-white" : "text-cream/80 hover:bg-forest-light/40"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon className="w-4 h-4 text-mint" aria-hidden="true" />
-                      <span>{item.label}</span>
-                    </div>
-                    {item.count !== undefined && (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber text-charcoal">
-                        {item.count}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Main Route Content */}
-          <main id="main-content" tabIndex={-1} className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto outline-none">
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-canvas">
+          <main
+            id="main-content"
+            tabIndex={-1}
+            className="flex-1 p-3.5 sm:p-6 lg:p-8 outline-none pb-20 lg:pb-8 max-w-7xl mx-auto w-full"
+          >
             {children}
           </main>
         </div>
       </div>
 
-      {/* Guided 90-Second Judge Demo Tour Modal */}
+      {/* Mobile Bottom Navigation Bar (Mandatory for Android / Mobile) */}
+      <nav
+        aria-label="Mobile Bottom Navigation"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-panel/95 backdrop-blur-md border-t border-studio-border px-2 py-1.5 flex items-center justify-around shadow-elevation"
+      >
+        <Link
+          href="/dashboard"
+          className={`flex flex-col items-center justify-center p-1 rounded transition-colors ${
+            pathname === "/dashboard" ? "text-studio-tangerine font-bold" : "text-studio-text-muted hover:text-studio-text"
+          }`}
+        >
+          <LayoutDashboard className="w-4 h-4" />
+          <span className="text-[10px] mt-0.5">Overview</span>
+        </Link>
+
+        <Link
+          href="/donate"
+          className={`flex flex-col items-center justify-center p-1 rounded transition-colors ${
+            pathname === "/donate" ? "text-studio-tangerine font-bold" : "text-studio-text-muted hover:text-studio-text"
+          }`}
+        >
+          <PlusCircle className="w-4 h-4" />
+          <span className="text-[10px] mt-0.5">Rescue</span>
+        </Link>
+
+        <button
+          onClick={() => setShowCopilot(true)}
+          className="flex flex-col items-center justify-center p-1.5 rounded-full bg-studio-indigo text-white shadow-subtle -mt-3"
+          aria-label="Open Relay Copilot"
+        >
+          <Bot className="w-4 h-4 text-white" />
+          <span className="text-[8px] font-bold">Copilot</span>
+        </button>
+
+        <Link
+          href="/matches"
+          className={`flex flex-col items-center justify-center p-1 rounded transition-colors ${
+            pathname?.startsWith("/matches") ? "text-studio-tangerine font-bold" : "text-studio-text-muted hover:text-studio-text"
+          }`}
+        >
+          <GitCompare className="w-4 h-4" />
+          <span className="text-[10px] mt-0.5">Matches</span>
+        </Link>
+
+        <Link
+          href="/about"
+          className={`flex flex-col items-center justify-center p-1 rounded transition-colors ${
+            pathname === "/about" ? "text-studio-tangerine font-bold" : "text-studio-text-muted hover:text-studio-text"
+          }`}
+        >
+          <Info className="w-4 h-4" />
+          <span className="text-[10px] mt-0.5">Safety</span>
+        </Link>
+      </nav>
+
+      {/* Floating Action Button for Judge Demonstration Tour */}
+      <button
+        onClick={() => setShowDemoGuide(true)}
+        className="fixed bottom-16 lg:bottom-4 right-4 z-40 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-studio-obsidian dark:bg-studio-graphite text-white text-xs font-semibold shadow-elevation hover:bg-studio-tangerine transition border border-studio-border"
+        aria-label="Open Interactive Judge Tour"
+      >
+        <Sparkles className="w-3.5 h-3.5 text-studio-tangerine" />
+        <span className="hidden sm:inline">Tour (90s)</span>
+      </button>
+
+      {/* Command Palette Modal */}
+      <CommandPalette
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        onOpenCopilot={() => {
+          setShowCommandPalette(false);
+          setShowCopilot(true);
+        }}
+        onResetDemo={() => {
+          setShowCommandPalette(false);
+          handleResetDemo();
+        }}
+      />
+
+      {/* Guided Tour Modal */}
       {showDemoGuide && (
         <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="tour-dialog-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
+          aria-labelledby="tour-modal-title"
         >
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 shadow-elevation border border-gray-100 flex flex-col justify-between">
-            {/* Modal Header */}
-            <div>
-              <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2.5 bg-mint rounded-2xl text-forest">
-                    <Sparkles className="w-5 h-5 text-emerald" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <h3 id="tour-dialog-title" className="font-heading font-extrabold text-lg text-forest">
-                      90-Second Guided Judge Demo Tour
-                    </h3>
-                    <p className="text-xs text-charcoal-muted">
-                      PromptWars × Echo Engineers · Rapid End-to-End Evaluation Path
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setGuideViewMode(guideViewMode === "step" ? "list" : "step")}
-                    className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-cream hover:bg-cream-dark text-charcoal border border-gray-200 transition"
-                  >
-                    {guideViewMode === "step" ? "View All 10 Steps" : "Step-by-Step View"}
-                  </button>
-                  <button
-                    onClick={() => setShowDemoGuide(false)}
-                    className="p-1.5 rounded-xl hover:bg-gray-100 text-gray-500"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
+          <div className="bg-panel rounded-lg max-w-md w-full p-5 shadow-elevation border border-studio-border space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-studio-border">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-studio-tangerine" />
+                <h3 id="tour-modal-title" className="font-heading font-bold text-studio-text text-sm">
+                  Judge Demonstration Guide
+                </h3>
               </div>
-
-              {/* Progress Bar (in step view) */}
-              {guideViewMode === "step" && (
-                <div className="pt-4 pb-2">
-                  <div className="flex items-center justify-between text-xs font-bold text-forest mb-1.5">
-                    <span>Step {guideStepIndex + 1} of 10</span>
-                    <span className="text-emerald">{Math.round(((guideStepIndex + 1) / 10) * 100)}% Complete</span>
-                  </div>
-                  <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                    <div
-                      className="bg-emerald h-full transition-all duration-300 rounded-full"
-                      style={{ width: `${((guideStepIndex + 1) / 10) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Tour Steps Content */}
-            {(() => {
-              const STEPS = [
-                {
-                  step: 1,
-                  title: "1. Multilingual Natural Language Intake",
-                  desc: "Start on the Intake page. Click one of the sample messages (English, Hindi, or Hinglish) to load authentic surplus descriptions.",
-                  link: "/donate",
-                  actionText: "Open Intake Page →",
-                },
-                {
-                  step: 2,
-                  title: "2. Live Gemini AI Extraction",
-                  desc: "Click 'Extract Entities'. Gemini parses dates, quantities, locations, and packaging into structured JSON schema with zero hallucination.",
-                  link: "/donate",
-                  actionText: "Try Extraction →",
-                },
-                {
-                  step: 3,
-                  title: "3. Human Verification Review Form",
-                  desc: "Inspect the populated fields with status pills ('Extracted', 'Needs Clarification', 'Confirmed'). Confirm safety declaration and save.",
-                  link: "/donate",
-                  actionText: "Review Draft Form →",
-                },
-                {
-                  step: 4,
-                  title: "4. FSSAI 2019 Food Safety Review Gate",
-                  desc: "Navigate to Donations list. Held donations cannot be allocated until a simulated coordinator inspects packaging and cold-chain compliance.",
-                  link: "/donations",
-                  actionText: "View Safety Queue →",
-                },
-                {
-                  step: 5,
-                  title: "5. Real-Time Operations Rescue Pulse",
-                  desc: "Open Dashboard. Observe live countdown timers ticking down towards pickup deadlines, highlighting urgent surplus batches.",
-                  link: "/dashboard",
-                  actionText: "Open Operations Dashboard →",
-                },
-                {
-                  step: 6,
-                  title: "6. Explainable RelayMatch Engine",
-                  desc: "Go to Match Center. Select an eligible donation to observe multi-factor scoring (Urgency 40%, Proximity 30%, Demand 20%, Readiness 10%).",
-                  link: "/matches",
-                  actionText: "Go to Match Center →",
-                },
-                {
-                  step: 7,
-                  title: "7. RelayMatch vs. FCFS Benchmark",
-                  desc: "Click the 'RelayMatch vs. FCFS Benchmark' tab to inspect why constraint-aware matching delivers +38% better high-urgency coverage than naive first-come allocation.",
-                  link: "/matches",
-                  actionText: "Inspect Benchmark →",
-                },
-                {
-                  step: 8,
-                  title: "8. Reserve Plan & Guarded Dispatch",
-                  desc: "Reserve the suggested plan. Head to Dispatch Board to progress state: Reserved → Accepted → Ready for Pickup → Collected → Delivered.",
-                  link: "/dispatch",
-                  actionText: "Open Dispatch Board →",
-                },
-                {
-                  step: 9,
-                  title: "9. Verifiable Handover Receipt & QR",
-                  desc: "Click 'View Handover Receipt' for any completed delivery. Inspect recipient signature verification and secure QR payload.",
-                  link: "/dispatch",
-                  actionText: "Inspect Digital Receipt →",
-                },
-                {
-                  step: 10,
-                  title: "10. Real-Time Impact & CO2 Analytics",
-                  desc: "View Impact Analytics. Verify confirmed meal portions, CO2 diversion metrics (2.5 kg CO2e/portion), and zero double-counting.",
-                  link: "/impact",
-                  actionText: "Inspect Impact Dashboard →",
-                },
-              ];
-
-              if (guideViewMode === "step") {
-                const current = STEPS[guideStepIndex];
-                return (
-                  <div className="py-6 space-y-5">
-                    <div className="p-6 rounded-2xl bg-cream border border-emerald/20 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-forest text-mint">
-                          Evaluation Milestone {current.step} / 10
-                        </span>
-                        <span className="text-[11px] text-charcoal-muted">~9 seconds per step</span>
-                      </div>
-                      <h4 className="font-heading font-extrabold text-lg text-forest">
-                        {current.title}
-                      </h4>
-                      <p className="text-xs sm:text-sm text-charcoal-muted leading-relaxed">
-                        {current.desc}
-                      </p>
-                      <div className="pt-2">
-                        <Link
-                          href={current.link}
-                          onClick={() => setShowDemoGuide(false)}
-                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-forest hover:bg-forest-light text-white text-xs font-semibold shadow-subtle transition"
-                        >
-                          {current.actionText}
-                        </Link>
-                      </div>
-                    </div>
-
-                    {/* Step Navigation Controls */}
-                    <div className="flex items-center justify-between pt-2">
-                      <button
-                        onClick={() => setGuideStepIndex((prev) => Math.max(0, prev - 1))}
-                        disabled={guideStepIndex === 0}
-                        className="inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold rounded-xl bg-white border border-gray-200 text-charcoal hover:bg-cream disabled:opacity-40 transition"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                        Previous Step
-                      </button>
-
-                      {guideStepIndex < STEPS.length - 1 ? (
-                        <button
-                          onClick={() => setGuideStepIndex((prev) => Math.min(STEPS.length - 1, prev + 1))}
-                          className="inline-flex items-center gap-1 px-5 py-2 text-xs font-bold rounded-xl bg-emerald hover:bg-emerald-dark text-white shadow-subtle transition"
-                        >
-                          Next Step
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => setShowDemoGuide(false)}
-                          className="inline-flex items-center gap-1 px-5 py-2 text-xs font-bold rounded-xl bg-forest text-mint shadow-subtle hover:bg-forest-light transition"
-                        >
-                          <Check className="w-4 h-4" />
-                          Tour Complete! Close
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              }
-
-              // List Mode
-              return (
-                <div className="py-4 space-y-2.5 max-h-[60vh] overflow-y-auto">
-                  {STEPS.map((item) => (
-                    <div
-                      key={item.step}
-                      className="p-3.5 rounded-2xl bg-cream/70 border border-emerald/10 hover:border-emerald/30 transition flex items-start gap-3"
-                    >
-                      <span className="w-6 h-6 rounded-full bg-forest text-mint font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
-                        {item.step}
-                      </span>
-                      <div className="flex-1 text-xs">
-                        <div className="flex items-center justify-between">
-                          <h5 className="font-bold text-forest">{item.title}</h5>
-                          <Link
-                            href={item.link}
-                            onClick={() => setShowDemoGuide(false)}
-                            className="text-emerald font-semibold hover:underline text-[11px]"
-                          >
-                            Jump →
-                          </Link>
-                        </div>
-                        <p className="text-charcoal-muted mt-0.5 leading-relaxed">{item.desc}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
-
-            {/* Modal Footer */}
-            <div className="pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-charcoal-muted">
-              <span>Prototype v1.0.0 · LocalStorage Persistence</span>
               <button
                 onClick={() => setShowDemoGuide(false)}
-                className="px-4 py-2 bg-cream hover:bg-cream-dark text-charcoal rounded-xl text-xs font-medium transition"
+                className="p-1 rounded text-studio-text-muted hover:text-studio-text"
+                aria-label="Close Tour"
               >
-                Close Tour
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex gap-1 p-0.5 bg-canvas-subtle rounded border border-studio-border">
+                <button
+                  onClick={() => setGuideViewMode("step")}
+                  className={`px-2 py-0.5 rounded text-2xs font-medium ${
+                    guideViewMode === "step" ? "bg-panel text-studio-text shadow-subtle" : "text-studio-text-muted"
+                  }`}
+                >
+                  Step-by-Step
+                </button>
+                <button
+                  onClick={() => setGuideViewMode("list")}
+                  className={`px-2 py-0.5 rounded text-2xs font-medium ${
+                    guideViewMode === "list" ? "bg-panel text-studio-text shadow-subtle" : "text-studio-text-muted"
+                  }`}
+                >
+                  Overview
+                </button>
+              </div>
+              <span className="text-2xs text-studio-text-muted font-mono">
+                {guideStepIndex + 1} / {STEPS.length}
+              </span>
+            </div>
+
+            {guideViewMode === "step" ? (
+              <div className="space-y-3 py-1">
+                <div className="p-3 rounded bg-canvas-subtle border border-studio-border">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="w-5 h-5 rounded-full bg-studio-tangerine text-white font-mono font-bold text-2xs flex items-center justify-center">
+                      {STEPS[guideStepIndex].step}
+                    </span>
+                    <h4 className="font-semibold text-studio-text text-xs">
+                      {STEPS[guideStepIndex].title}
+                    </h4>
+                  </div>
+                  <p className="text-xs text-studio-text-secondary leading-relaxed">
+                    {STEPS[guideStepIndex].desc}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    disabled={guideStepIndex === 0}
+                    onClick={() => setGuideStepIndex((prev) => Math.max(0, prev - 1))}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded border border-studio-border text-studio-text-secondary hover:bg-canvas-subtle disabled:opacity-30 disabled:pointer-events-none"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    Prev
+                  </button>
+
+                  <Link
+                    href={STEPS[guideStepIndex].link}
+                    onClick={() => setShowDemoGuide(false)}
+                    className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded bg-studio-tangerine text-white hover:bg-studio-tangerine-hover"
+                  >
+                    Open Page →
+                  </Link>
+
+                  {guideStepIndex < STEPS.length - 1 ? (
+                    <button
+                      onClick={() => setGuideStepIndex((prev) => Math.min(STEPS.length - 1, prev + 1))}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded border border-studio-border text-studio-text-secondary hover:bg-canvas-subtle"
+                    >
+                      Next
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowDemoGuide(false)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded bg-studio-jade text-white"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      Done
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="py-1 space-y-2 max-h-56 overflow-y-auto">
+                {STEPS.map((item) => (
+                  <div
+                    key={item.step}
+                    className="p-2.5 rounded bg-canvas-subtle border border-studio-border flex items-start gap-2.5"
+                  >
+                    <span className="w-5 h-5 rounded-full bg-studio-obsidian dark:bg-studio-graphite text-white font-mono font-bold text-2xs flex items-center justify-center flex-shrink-0 mt-0.5">
+                      {item.step}
+                    </span>
+                    <div className="flex-1 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-studio-text">{item.title}</span>
+                        <Link
+                          href={item.link}
+                          onClick={() => setShowDemoGuide(false)}
+                          className="text-studio-tangerine font-medium hover:underline text-2xs"
+                        >
+                          Jump →
+                        </Link>
+                      </div>
+                      <p className="text-studio-text-muted mt-0.5 text-2xs">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="pt-2 border-t border-studio-border flex items-center justify-between text-2xs text-studio-text-muted">
+              <span>FoodRelay Studio v2.0</span>
+              <button
+                onClick={() => setShowDemoGuide(false)}
+                className="px-2 py-1 rounded bg-canvas-subtle hover:bg-canvas text-studio-text"
+              >
+                Close
               </button>
             </div>
           </div>

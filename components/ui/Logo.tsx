@@ -6,58 +6,52 @@ interface LogoProps {
   showText?: boolean;
 }
 
-export function Logo({ className = "", size = 32, showText = true }: LogoProps) {
+/**
+ * FoodRelay Studio Brandmark:
+ * An original, minimalist geometric glyph:
+ * Two interlocking dynamic forms representing the transfer of surplus sustenance
+ * into dignity and hope.
+ * Precision crafted with Tangerine (#FF7849) and Electric Indigo (#635BFF) on Obsidian/Graphite.
+ */
+export function Logo({ className = "", size = 28, showText = true }: LogoProps) {
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
       <div 
-        className="relative flex items-center justify-center rounded-xl bg-forest text-mint shadow-subtle flex-shrink-0"
+        className="relative flex items-center justify-center rounded-md bg-studio-obsidian dark:bg-studio-graphite text-white flex-shrink-0 border border-studio-border overflow-hidden"
         style={{ width: size, height: size }}
       >
         <svg
-          viewBox="0 0 40 40"
+          viewBox="0 0 32 32"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
           className="w-3/4 h-3/4"
         >
-          {/* Bowl/Dish Base */}
+          {/* First Relay Node: Source of Surplus (Electric Indigo) */}
           <path
-            d="M8 22C8 28.6274 13.3726 34 20 34C26.6274 34 32 28.6274 32 22H8Z"
-            fill="#15803D"
+            d="M6 16C6 10.4772 10.4772 6 16 6V16H6Z"
+            fill="#635BFF"
           />
-          {/* Rescue Leaf / Sprout emerging upwards */}
+          {/* Second Relay Node: Destination of Sustenance (Tangerine) */}
           <path
-            d="M20 7C14 7 12 14 16 19C18 21.5 22 21.5 24 19C28 14 26 7 20 7Z"
-            fill="#DCFCE7"
+            d="M26 16C26 21.5228 21.5228 26 16 26V16H26Z"
+            fill="#FF7849"
           />
-          {/* Relay / Connection Arrow Arc */}
-          <path
-            d="M13 14C11 17 11 21 13 23"
-            stroke="#FFFFFF"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          />
-          <path
-            d="M27 14C29 17 29 21 27 23"
-            stroke="#DCFCE7"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          />
-          {/* Steam / Vitality Sparkle */}
-          <circle cx="20" cy="13" r="1.5" fill="#123B2B" />
+          {/* Dynamic Transfer Bridge Vector */}
+          <circle cx="16" cy="16" r="2.5" fill="#FAF9F6" />
         </svg>
       </div>
 
       {showText && (
         <div className="flex flex-col">
-          <div className="flex items-center gap-1.5">
-            <span className="font-heading font-bold text-lg leading-tight tracking-tight text-forest">
+          <div className="flex items-center gap-1.5 leading-none">
+            <span className="font-heading font-bold text-sm tracking-tight text-studio-text">
               FoodRelay
             </span>
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide uppercase bg-mint text-forest-dark border border-emerald/20">
-              AI
+            <span className="text-[10px] font-mono font-medium text-studio-tangerine bg-studio-tangerine-light dark:bg-studio-tangerine/10 px-1 py-0.2 rounded border border-studio-tangerine/20">
+              STUDIO
             </span>
           </div>
-          <span className="text-[10px] font-medium tracking-wide text-charcoal-muted uppercase">
+          <span className="text-[10px] tracking-wide text-studio-text-muted mt-0.5">
             Rescue food · Redirect hope
           </span>
         </div>

@@ -58,6 +58,13 @@ Traditional food donation channels fail because:
 - **Stateless Facade & Header Security**: Passes full DTOs by value in a single round-trip without session stickiness; audit and actor context propagated via `RequestContext` (`graftcode-context`).
 - **Specification Document**: Full details in [docs/PS11_MCP_AI_AGENTS.md](file:///Users/naman/Documents/ANTIGRAVITY%20/DEVELOPMENT/FoodRelay/docs/PS11_MCP_AI_AGENTS.md).
 
+### H. Native Android Application (Capacitor 8 & Physical Device Deployment)
+- **High-Performance Native Mobile Client**: Packaged for Android 15 (SDK 35) using Capacitor 8 under application ID `com.impactforge.foodrelay`.
+- **Seamless USB Reverse Proxy**: Connects over USB cable via `adb reverse tcp:3000 tcp:3000` to local Next.js and Graftcode instances, preserving full SSR, server-side Gemini intelligence, and live local storage state.
+- **Mobile-First Touch Navigation**: Persistent WCAG 2.2 AA bottom navigation bar (Home, Donate, Rescue, Agent, Profile) with slide-out Gemini Relay Copilot drawer and reactive offline NGO redistribution sandbox.
+- **Specification & Runbook**: Full details in [docs/ANDROID_APP.md](file:///Users/naman/Documents/ANTIGRAVITY%20/DEVELOPMENT/FoodRelay/docs/ANDROID_APP.md).
+
+
 ---
 
 ## 3. Architecture & Data Flow

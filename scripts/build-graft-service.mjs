@@ -7,6 +7,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = resolve(__dirname, "..");
 const serviceEntry = resolve(rootDir, "services/foodrelay/FoodRelayMcpService.ts");
 const serviceOut = resolve(rootDir, "services/foodrelay/dist/index.js");
+const dtsOut = resolve(rootDir, "services/foodrelay/dist/index.d.ts");
 
 async function buildService() {
   console.log("Building FoodRelay MCP Graftcode Service...");
@@ -24,8 +25,22 @@ async function buildService() {
   // Normalize module.exports for Graftcode GMA AST analyzer
   code = code.replace(/module\.exports\s*=\s*__toCommonJS\(.*?\);/g, "");
   code = code.replace(/var\s+FoodRelayMcpService\s*=\s*class\s+_?FoodRelayMcpService/g, "class FoodRelayMcpService");
+  code = code.replace(/_FoodRelayMcpService/g, "FoodRelayMcpService");
   code += "\nmodule.exports = { FoodRelayMcpService };\n";
   writeFileSync(serviceOut, code, "utf8");
+
+  // Generate strong declaration file for Graftcode Gateway AST parser
+  const dtsContent = `export declare class FoodRelayMcpService {
+  static getNetworkStatus(): string;
+  static evaluateDonationSafety(donationInput?: string): string;
+  static calculateSurplusMatches(donationInput?: string, weightsInput?: string): string;
+  static triggerAutoRedistribution(offlineShelterId?: string, donationInput?: string, weightsInput?: string): string;
+  static advanceDispatchStatus(allocationId?: string, currentStatus?: string, targetStatus?: string, actor?: string, note?: string): string;
+  static generateDispatchVoucher(allocationId?: string, donationId?: string, recipientId?: string, portions?: number | string, donorName?: string, recipientName?: string): string;
+  static parseIntakeText(rawText: string): string;
+}
+`;
+  writeFileSync(dtsOut, dtsContent, "utf8");
 
   console.log("Successfully built FoodRelay MCP Service at", serviceOut);
 }
