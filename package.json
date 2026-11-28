@@ -9,11 +9,16 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "graft:build": "node scripts/build-graft-service.mjs",
+    "graft:gen": "node scripts/build-graft-service.mjs && ./gg --runtime nodejs --modules ./services/foodrelay --graftOnly",
+    "graft:start": "node scripts/build-graft-service.mjs && ./gg --runtime nodejs --modules ./services/foodrelay --port 8088 --httpPort 8089",
+    "mcp:start": "npm run graft:start"
   },
   "dependencies": {
     "@google/genai": "^3.6.1",
     "clsx": "^2.1.1",
+    "graftcode-context": "^1.1.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.475.0",
     "next": "^15.1.7",

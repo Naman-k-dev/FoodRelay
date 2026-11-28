@@ -52,6 +52,12 @@ Traditional food donation channels fail because:
 - Guarded state machine: `Proposed` $\rightarrow$ `Reserved` $\rightarrow$ `Accepted` $\rightarrow$ `Ready for Pickup` $\rightarrow$ `Collected` $\rightarrow$ `Delivered`.
 - Generates verifiable digital handover receipts with printable QR codes containing non-sensitive audit references.
 
+### G. PS11 — AI Agents & Model Context Protocol (MCP) via Graftcode
+- **Universal Service Contract**: Implements `FoodRelayMcpService` using Graftcode native architecture (public static methods as the API contract, hosted via `gg`).
+- **7 Zero-Boilerplate MCP Tools**: Automatically exposes network status, FSSAI safety gate validation, multi-criteria surplus matching, reactive shelter redistribution, dispatch progression guards, digital dispatch vouchers, and natural-language intake parsing to external AI agents (Cursor, Claude Desktop, Antigravity) over streaming `/mcp`.
+- **Stateless Facade & Header Security**: Passes full DTOs by value in a single round-trip without session stickiness; audit and actor context propagated via `RequestContext` (`graftcode-context`).
+- **Specification Document**: Full details in [docs/PS11_MCP_AI_AGENTS.md](file:///Users/naman/Documents/ANTIGRAVITY%20/DEVELOPMENT/FoodRelay/docs/PS11_MCP_AI_AGENTS.md).
+
 ---
 
 ## 3. Architecture & Data Flow

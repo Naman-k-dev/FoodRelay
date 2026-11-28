@@ -28,3 +28,12 @@ build
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Graftcode Gateway Binary & Runtime Cache (Strictly excluded from repo size)
+gg
+gg.exe
+*.deb
+.graftcode/
+*.log
+graft.log
+

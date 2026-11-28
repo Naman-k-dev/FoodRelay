@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "foodrelay-mcp": {
+      "url": "http://localhost:8088/mcp"
+    }
+  }
+}
